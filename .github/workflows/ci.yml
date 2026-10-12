@@ -1,0 +1,32 @@
+name: Prototype checks
+on: [push, pull_request]
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm test:db
+      - run: pnpm build
+      - run: pnpm --filter @qaamuusai/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+  datasets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r tools/dataset-validator/requirements.txt
+      - run: pytest tools/dataset-validator -q
+      - run: python tools/dataset-validator/validator.py datasets/demo/v0.1.jsonl --published-only

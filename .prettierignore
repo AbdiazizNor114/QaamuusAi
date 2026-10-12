@@ -1,0 +1,7 @@
+node_modules
+.next
+.venv
+pnpm-lock.yaml
+test-results
+playwright-report
+datasets/**/*.jsonl

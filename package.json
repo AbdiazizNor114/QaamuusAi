@@ -1,0 +1,19 @@
+{
+  "name": "qaamuusai",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "pnpm --filter @qaamuusai/web dev",
+    "build": "pnpm --filter @qaamuusai/web build",
+    "typecheck": "pnpm --filter @qaamuusai/web typecheck",
+    "lint": "pnpm --filter @qaamuusai/web lint",
+    "test": "pnpm --filter @qaamuusai/web test",
+    "test:e2e": "pnpm --filter @qaamuusai/web test:e2e",
+    "test:db": "node --test tests/database.test.mjs",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "prettier": "3.9.10"
+  }
+}

@@ -1,4 +1,218 @@
 @import "tailwindcss";
+.shared-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.shared-shell button {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 13px;
+  background: white;
+}
+.shared-shell button.primary {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+}
+.shared-shell button.icon-button {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+.shared-shell button:hover {
+  filter: brightness(0.97);
+}
+.shared-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--line);
+}
+.shared-header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.shared-header-actions select {
+  width: 115px;
+  margin: 0;
+}
+.shared-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  flex: 1;
+}
+.shared-nav {
+  padding: 28px 16px;
+  border-right: 1px solid var(--line);
+}
+.shared-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+.shared-nav a.active {
+  background: #e8f1eb;
+  color: var(--green);
+}
+.shared-main {
+  width: 100%;
+  max-width: 1100px;
+  padding: 32px 40px 60px;
+  min-width: 0;
+}
+.shared-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.shared-title h1 {
+  font-size: 28px;
+}
+.shared-title h2 {
+  font-size: 22px;
+}
+.shared-title h1,
+.shared-title h2 {
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.shared-notice:empty {
+  display: none;
+}
+.shared-notice {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: #e8f1eb;
+  overflow-wrap: anywhere;
+}
+.shared-toolbar,
+.shared-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.shared-toolbar select {
+  width: 160px;
+  margin: 0;
+}
+.shared-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 160px;
+  margin: 0;
+}
+.shared-search input {
+  margin: 0;
+}
+.shared-download {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shared-records {
+  border-top: 1px solid var(--line);
+}
+button.shared-record {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 24px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  text-align: left;
+  padding: 20px 0;
+  background: transparent;
+}
+.shared-record strong,
+.shared-record span,
+.shared-record small {
+  overflow-wrap: anywhere;
+}
+.shared-record small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+.shared-main textarea {
+  min-height: 100px;
+}
+.shared-main dl {
+  margin: 20px 0;
+}
+.shared-main dd {
+  margin: 4px 0 16px;
+  overflow-wrap: anywhere;
+}
+.shared-main .record-band p {
+  white-space: pre-wrap;
+}
+.shared-footer {
+  padding: 20px 32px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .shared-header {
+    padding: 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .shared-header .status-pill {
+    display: none;
+  }
+  .shared-header-actions {
+    gap: 10px;
+  }
+  .shared-header .brand {
+    font-size: 20px;
+  }
+  .shared-layout {
+    display: block;
+  }
+  .shared-nav {
+    display: flex;
+    overflow-x: auto;
+    padding: 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .shared-nav a {
+    flex-shrink: 0;
+    padding: 10px;
+  }
+  .shared-main {
+    padding: 24px 16px 40px;
+  }
+  .shared-title h1 {
+    font-size: 24px;
+  }
+  .shared-toolbar select {
+    flex: 1;
+  }
+  button.shared-record {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .community-panel {
   min-width: 0;
 }

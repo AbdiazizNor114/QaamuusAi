@@ -14,7 +14,7 @@ Production readiness requires applying and testing migrations in a local Supabas
 
 ## Follow-on phases
 
-1. Supabase shared persistence and authentication: **paused by the user** until configuration is available.
+1. Supabase shared persistence and authentication: **core dataset integration implemented**. The two migrations were applied to the authorized project; public dataset reads, verified cookie sessions, profile setup, draft/edit/correction, independent review/publication, comments and dispute resolution use the shared API. Real email sign-in and multiple authenticated users still need verification. No sample data or roles were imported. Additional scholar/role/article/release endpoints remain pending.
 2. Onboarding and roles: **local prototype complete**. Synthetic profiles, scholar applications, independent acceptance/decline, combined roles and audited grants/revocations.
 3. Editorial workflows: **local prototype complete**. Reviewer assignment, persistent discussion, evidence and resolution history. Native shared persistence remains part of phase 1.
 4. Articles and releases: **local prototype complete**. Article draft/edit/review/publication/correction and immutable dataset releases with JSONL/license-manifest downloads.

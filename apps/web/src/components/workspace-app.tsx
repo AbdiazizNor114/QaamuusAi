@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import NextLink from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowDownToLine,
@@ -51,6 +52,17 @@ import { LocaleContext, translate, useLocale } from "@/lib/locale";
 import { readableError } from "@/lib/errors";
 
 const storageKey = "qaamuusAi.demo.v1";
+function Link(props: React.ComponentProps<typeof NextLink>) {
+  const pathname = usePathname();
+  const href =
+    typeof props.href === "string" &&
+    props.href.startsWith("/") &&
+    pathname.startsWith("/demo") &&
+    !props.href.startsWith("/api/")
+      ? `/demo${props.href}`
+      : props.href;
+  return <NextLink {...props} href={href} />;
+}
 const baseLabels: Record<string, string> = {
   vocabulary: "Vocabulary",
   translation: "Somali-English",

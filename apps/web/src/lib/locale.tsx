@@ -17,6 +17,23 @@ export const auditTitles: Record<string, string> = {
 };
 export const LocaleContext = createContext<Language>("en");
 export const somali: Record<string, string> = {
+  "Shared workspace": "Goobta wadajirka ah",
+  "Workspace navigation": "Hagaha goobta shaqada",
+  "Sign out": "Ka bax",
+  Refresh: "Cusboonaysii",
+  "Loading…": "Waa la soo rarayaa…",
+  "Saved to shared workspace.": "Waxaa lagu kaydiyey goobta wadajirka ah.",
+  "Sign in to open your workspace.": "Soo gal si aad u furto goobtaada shaqada.",
+  "No published entries yet.": "Weli wax lama daabicin.",
+  "No submissions found.": "Wax gudbin ah lama helin.",
+  "This shared workflow is not connected yet.": "Hawshan wadajirka ah weli lama xidhin.",
+  "Verification code": "Koodhka xaqiijinta",
+  "Verify code": "Xaqiiji koodhka",
+  "New submission": "Gudbin cusub",
+  "Record decision": "Kaydi go'aanka",
+  "Resolve dispute": "Xalli muranka",
+  "Sign-in link is invalid or expired. Request a new link in this browser.":
+    "Xidhiidhka soo-geliddu ma shaqaynayo ama wuu dhacay. Ka codso xidhiidh cusub biraawsarkan.",
   Vocabulary: "Erayada",
   "Somali-English": "Soomaali-Ingiriisi",
   Grammar: "Naxwaha",

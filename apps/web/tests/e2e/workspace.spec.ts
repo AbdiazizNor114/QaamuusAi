@@ -1,18 +1,18 @@
 import { test, expect } from "@playwright/test";
 test("browse, propose, review and publish a correction", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/demo/");
   await expect(page.getByRole("heading", { name: "Somali language commons" })).toBeVisible();
   await page.getByRole("button", { name: "buug", exact: true }).click();
   await page.getByRole("button", { name: "Propose a correction" }).click();
   await page.getByLabel("English meaning").fill("book - corrected demo");
   await page.getByRole("button", { name: "Save draft" }).click();
-  await page.goto("/dashboard/submissions");
+  await page.goto("/demo/dashboard/submissions");
   await page.getByRole("button", { name: "buug", exact: true }).click();
   await page.getByLabel("Decision rationale").fill("Proposed correction with provenance");
   await page.getByRole("button", { name: "Submit for review" }).click();
   await page.getByRole("button", { name: "Close entry details" }).click();
   await page.getByLabel("Demo role").selectOption("reviewer");
-  await page.goto("/dashboard/reviews");
+  await page.goto("/demo/dashboard/reviews");
   await page.getByRole("button", { name: "buug", exact: true }).click();
   await page.getByLabel("Decision rationale").fill("Review started");
   await page.getByRole("button", { name: "Begin review" }).click();
@@ -23,7 +23,7 @@ test("browse, propose, review and publish a correction", async ({ page }) => {
   await page.getByRole("button", { name: "buug", exact: true }).click();
   await page.getByLabel("Decision rationale").fill("Permission confirmed");
   await page.getByRole("button", { name: "Publish entry" }).click();
-  await page.goto("/datasets");
+  await page.goto("/demo/datasets");
   await expect(
     page.getByRole("cell", { name: "book - corrected demo", exact: true }),
   ).toBeVisible();
@@ -31,7 +31,7 @@ test("browse, propose, review and publish a correction", async ({ page }) => {
 });
 test("mobile layout and dataset search", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/datasets");
+  await page.goto("/demo/datasets");
   await page.getByLabel("Search entries").fill("water");
   await expect(page.getByRole("button", { name: "biyo", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "buug", exact: true })).toHaveCount(0);
@@ -42,7 +42,7 @@ test("mobile layout and dataset search", async ({ page }) => {
   await page.screenshot({ path: "test-results/mobile.png", fullPage: true, caret: "initial" });
 });
 test("dispute resolution records positions and preserves history", async ({ page }) => {
-  await page.goto("/dashboard/disputes");
+  await page.goto("/demo/dashboard/disputes");
   await page.getByLabel("Demo role").selectOption("reviewer");
   await page.getByRole("button", { name: "Mahadsanid", exact: true }).click();
   await page.getByLabel("Your position").fill("Preserve the proposed variant pending evidence");
@@ -82,7 +82,7 @@ test("all routes fit narrow and desktop viewports and export approved data", asy
       "/dashboard/disputes",
       "/admin",
     ]) {
-      await page.goto(route);
+      await page.goto(`/demo${route}`);
       await expect(page.locator("h1")).toBeVisible();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -90,7 +90,7 @@ test("all routes fit narrow and desktop viewports and export approved data", asy
       ).toBe(true);
     }
   }
-  await page.goto("/");
+  await page.goto("/demo/");
   await expect(page.locator("main")).toHaveAttribute("data-ready", "true");
   await page.screenshot({ path: "test-results/desktop.png", fullPage: true, caret: "initial" });
   const downloaded = page.waitForEvent("download");

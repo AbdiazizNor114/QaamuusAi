@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 test("onboarding, scholar decision and audited role grant", async ({ page }) => {
-  await page.goto("/dashboard/profile");
+  await page.goto("/demo/dashboard/profile");
   await page.getByLabel("Demo display name").fill("Synthetic linguist");
   await page.getByLabel("Areas of expertise").fill("Demonstration grammar studies");
   await page.getByLabel("Biography").fill("Fictional test profile");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
-  await page.goto("/dashboard/scholars");
+  await page.goto("/demo/dashboard/scholars");
   await page.getByLabel("Areas of expertise").fill("Demo linguistics");
   await page.getByLabel("Application rationale").fill("Synthetic qualifications for review");
   await page.getByRole("button", { name: "Submit application" }).click();
@@ -15,14 +15,14 @@ test("onboarding, scholar decision and audited role grant", async ({ page }) => 
   await page.getByLabel("Decision rationale").fill("Independent synthetic assessment");
   await page.getByRole("button", { name: "Accept and grant reviewer" }).click();
   await expect(page.getByText("accepted", { exact: true })).toBeVisible();
-  await page.goto("/admin/roles");
+  await page.goto("/demo/admin/roles");
   await expect(page.getByText("Role granted", { exact: false })).toBeVisible();
   await expect(
     page.getByRole("row").filter({ hasText: "Synthetic linguist" }).first(),
   ).toContainText("reviewer");
 });
 test("article revisions, independent review and public publication", async ({ page }) => {
-  await page.goto("/dashboard/articles");
+  await page.goto("/demo/dashboard/articles");
   await page.getByRole("button", { name: "New article" }).click();
   await page.getByLabel("Article title").fill("Demo language note");
   await page.getByLabel("Summary", { exact: true }).fill("An authored demonstration");
@@ -43,14 +43,14 @@ test("article revisions, independent review and public publication", async ({ pa
   await page.getByRole("button", { name: /Demo language note/ }).click();
   await page.getByLabel("Decision rationale").fill("Permission and approval confirmed");
   await page.getByRole("button", { name: "Publish article" }).click();
-  await page.goto("/articles");
+  await page.goto("/demo/articles");
   await page.getByRole("button", { name: /Demo language note/ }).click();
   await expect(
     page.getByText("Original synthetic educational content.", { exact: true }),
   ).toBeVisible();
 });
 test("release snapshots and downloadable licensing manifest", async ({ page }) => {
-  await page.goto("/dashboard/releases");
+  await page.goto("/demo/dashboard/releases");
   await page.getByLabel("Demo role").selectOption("editor");
   await page.getByLabel("Release version").fill("0.1.0");
   await page.getByLabel("Release notes").fill("Initial synthetic snapshot");
@@ -65,7 +65,7 @@ test("release snapshots and downloadable licensing manifest", async ({ page }) =
 test("Somali preference persists and pages remain accessible on narrow screens", async ({
   page,
 }) => {
-  await page.goto("/dashboard/profile");
+  await page.goto("/demo/dashboard/profile");
   await page.getByTitle("Switch language").click();
   await expect(page.getByRole("heading", { name: "Aqoonsigayga" })).toBeVisible();
   await page.reload();
@@ -78,7 +78,7 @@ test("Somali preference persists and pages remain accessible on narrow screens",
     "/dashboard/articles",
     "/dashboard/releases",
   ]) {
-    await page.goto(route);
+    await page.goto(`/demo${route}`);
     await expect(page.locator("main")).toHaveAttribute("data-ready", "true");
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -98,7 +98,7 @@ test("accessibility, keyboard dialog behavior and API origin protection", async 
     "/dashboard/articles",
     "/dashboard/releases",
   ]) {
-    await page.goto(route);
+    await page.goto(`/demo${route}`);
     await expect(page.locator("main")).toHaveAttribute("data-ready", "true");
     const result = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -108,7 +108,7 @@ test("accessibility, keyboard dialog behavior and API origin protection", async 
       route,
     ).toEqual([]);
   }
-  await page.goto("/");
+  await page.goto("/demo/");
   await page.getByRole("button", { name: "buug", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
@@ -128,7 +128,7 @@ test("accessibility, keyboard dialog behavior and API origin protection", async 
 test("assigned review discussion persists and corrupt saves retain a recovery copy", async ({
   page,
 }) => {
-  await page.goto("/dashboard/reviews");
+  await page.goto("/demo/dashboard/reviews");
   await page.getByLabel("Demo role").selectOption("editor");
   await page.getByRole("button", { name: "qalin", exact: true }).click();
   await page.getByRole("combobox", { name: "Reviewer", exact: true }).selectOption("reviewer");

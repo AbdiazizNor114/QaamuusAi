@@ -21,6 +21,11 @@ import {
   Settings,
   ShieldCheck,
   X,
+  UserRound,
+  GraduationCap,
+  NotebookPen,
+  Package,
+  Users,
 } from "lucide-react";
 import {
   type Entry,
@@ -28,13 +33,25 @@ import {
   type Status,
   canExport,
   categories,
-  entrySchema,
   roles,
 } from "@qaamuusai/schemas";
-import { actors, advance, initialWorkspace, propose, revise, type Workspace } from "@/lib/demo";
+import {
+  actors,
+  advance,
+  initialWorkspace,
+  propose,
+  revise,
+  restoreWorkspace,
+  addEvidence,
+  type Workspace,
+} from "@/lib/demo";
+import { CommunityPanel } from "./community-panel";
+import { addComment, assignReview, hasPermission } from "@/lib/community";
+import { LocaleContext, translate, useLocale } from "@/lib/locale";
+import { readableError } from "@/lib/errors";
 
 const storageKey = "qaamuusAi.demo.v1";
-const labels: Record<string, string> = {
+const baseLabels: Record<string, string> = {
   vocabulary: "Vocabulary",
   translation: "Somali-English",
   grammar: "Grammar",
@@ -76,7 +93,7 @@ const dictionary = {
     about: "Ku saabsan mashruuca",
   },
 };
-const articles = [
+const seedArticles = [
   {
     title: "A shared foundation for Somali",
     category: "Project notes",
@@ -111,7 +128,8 @@ function download(entries: Entry[]) {
   URL.revokeObjectURL(url);
 }
 function Badge({ status }: { status: Status }) {
-  return <span className={`badge ${status}`}>{labels[status]}</span>;
+  const { tr } = useLocale();
+  return <span className={`badge ${status}`}>{tr(baseLabels[status])}</span>;
 }
 
 export function WorkspaceApp({ page }: { page: string }) {
@@ -128,30 +146,65 @@ export function WorkspaceApp({ page }: { page: string }) {
   const [notice, setNotice] = useState("");
   const [article, setArticle] = useState<number | null>(null);
   const [mobile, setMobile] = useState(false);
+  const tr = (value: string) => translate(value, language);
+  const labels = Object.fromEntries(
+    Object.entries(baseLabels).map(([key, value]) => [key, tr(value)]),
+  );
+  const articles = seedArticles.map((a) => ({
+    ...a,
+    title: tr(a.title),
+    description: tr(a.description),
+    body: tr(a.body),
+    category: tr(a.category),
+  }));
   useEffect(() => {
+    let saved: string | null = null;
     try {
       const raw = localStorage.getItem(storageKey);
+      saved = raw;
       if (raw) {
-        const value = JSON.parse(raw) as Workspace;
-        if (
-          Array.isArray(value.entries) &&
-          value.entries.every((e) => entrySchema.safeParse(e).success) &&
-          roles.includes(value.role) &&
-          Array.isArray(value.events) &&
-          Array.isArray(value.evidence)
-        ) {
-          // Restore the browser-local demo only after hydration.
-          setWorkspace(value);
-        }
+        setWorkspace(restoreWorkspace(JSON.parse(raw)));
       }
+      setLanguage(localStorage.getItem("qaamuusAi.language") === "so" ? "so" : "en");
     } catch {
-      localStorage.removeItem(storageKey);
+      try {
+        if (saved) localStorage.setItem(`${storageKey}.recovery`, saved);
+      } catch {}
+      setNotice(
+        "Saved demo data could not be read. A recovery copy is retained when storage is available.",
+      );
     }
     setReady(true);
   }, []);
   useEffect(() => {
-    if (ready) localStorage.setItem(storageKey, JSON.stringify(workspace));
+    if (ready) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(workspace));
+      } catch {
+        setNotice("Browser storage is unavailable or full. Your latest changes are not saved.");
+      }
+    }
   }, [workspace, ready]);
+  useEffect(() => {
+    document.documentElement.lang = language;
+    if (ready) {
+      try {
+        localStorage.setItem("qaamuusAi.language", language);
+      } catch {}
+    }
+  }, [language, ready]);
+  useEffect(() => {
+    const receive = (event: StorageEvent) => {
+      if (event.key === storageKey && event.newValue) {
+        try {
+          setWorkspace(restoreWorkspace(JSON.parse(event.newValue)));
+        } catch {}
+      }
+      if (event.key === "qaamuusAi.language") setLanguage(event.newValue === "so" ? "so" : "en");
+    };
+    window.addEventListener("storage", receive);
+    return () => window.removeEventListener("storage", receive);
+  }, []);
   const modalOpen = form || selected !== null || article !== null;
   useEffect(() => {
     if (!modalOpen) return;
@@ -193,7 +246,7 @@ export function WorkspaceApp({ page }: { page: string }) {
     };
   }, [modalOpen, form, selected, article]);
   const t = dictionary[language];
-  const isDashboard = page.startsWith("dashboard") || page === "admin";
+  const isDashboard = page.startsWith("dashboard") || page.startsWith("admin");
   const published = workspace.entries.filter(canExport);
   const current = workspace.entries.find((e) => e.id === selected);
   const filtered = (
@@ -223,9 +276,49 @@ export function WorkspaceApp({ page }: { page: string }) {
     try {
       setWorkspace(advance(workspace, current.id, to, rationale));
       setRationale("");
-      setNotice(`Decision recorded: ${labels[to]}.`);
+      setNotice(`${tr("Decision recorded")}: ${labels[to]}.`);
     } catch (e) {
-      setNotice((e as Error).message);
+      setNotice(readableError(e));
+    }
+  }
+  function recordAssignment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!current) return;
+    const data = new FormData(event.currentTarget);
+    try {
+      setWorkspace({
+        ...workspace,
+        community: assignReview(
+          workspace.community,
+          workspace.role,
+          current,
+          data.get("reviewer") as Role,
+          String(data.get("reason")),
+        ),
+      });
+      setNotice("Review assignment saved.");
+    } catch (error) {
+      setNotice(readableError(error));
+    }
+  }
+  function recordComment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!current) return;
+    const form = event.currentTarget;
+    try {
+      setWorkspace({
+        ...workspace,
+        community: addComment(
+          workspace.community,
+          workspace.role,
+          current,
+          String(new FormData(form).get("comment")),
+        ),
+      });
+      form.reset();
+      setNotice("Comment recorded.");
+    } catch (error) {
+      setNotice(readableError(error));
     }
   }
   const table = (entries: Entry[]) => (
@@ -233,13 +326,13 @@ export function WorkspaceApp({ page }: { page: string }) {
       <table>
         <thead>
           <tr>
-            <th>Somali</th>
-            <th>English / meaning</th>
-            <th>Collection</th>
-            <th>Status</th>
-            <th>Version</th>
+            <th>{tr("Somali")}</th>
+            <th>{tr("English / meaning")}</th>
+            <th>{tr("Collection")}</th>
+            <th>{tr("Status")}</th>
+            <th>{tr("Version")}</th>
             <th>
-              <span className="sr-only">Open</span>
+              <span className="sr-only">{tr("Open")}</span>
             </th>
           </tr>
         </thead>
@@ -262,7 +355,11 @@ export function WorkspaceApp({ page }: { page: string }) {
               <td>
                 <Badge status={e.status} />
               </td>
-              <td className="muted">v{e.version}.0</td>
+              <td className="muted">
+                {tr("v")}
+                {e.version}
+                {tr(".0")}
+              </td>
               <td>
                 <ChevronRight size={16} />
               </td>
@@ -273,8 +370,8 @@ export function WorkspaceApp({ page }: { page: string }) {
       {entries.length === 0 && (
         <div className="empty">
           <Search size={28} />
-          <h3>No entries found</h3>
-          <p>Try another word or collection.</p>
+          <h3>{tr("No entries found")}</h3>
+          <p>{tr("Try another word or collection.")}</p>
         </div>
       )}
     </div>
@@ -284,18 +381,18 @@ export function WorkspaceApp({ page }: { page: string }) {
       <label className="search">
         <Search size={18} />
         <input
-          aria-label="Search entries"
+          aria-label={tr("Search entries")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t.search}
         />
       </label>
       <select
-        aria-label="Filter collection"
+        aria-label={tr("Filter collection")}
         value={category}
         onChange={(e) => setCategory(e.target.value)}
       >
-        <option value="all">All collections</option>
+        <option value="all">{tr("All collections")}</option>
         {categories.map((c) => (
           <option key={c} value={c}>
             {labels[c]}
@@ -304,11 +401,11 @@ export function WorkspaceApp({ page }: { page: string }) {
       </select>
       {isDashboard && (
         <select
-          aria-label="Filter status"
+          aria-label={tr("Filter status")}
           value={status}
           onChange={(e) => setStatus(e.target.value)}
         >
-          <option value="all">All statuses</option>
+          <option value="all">{tr("All statuses")}</option>
           {[
             "draft",
             "submitted",
@@ -327,8 +424,8 @@ export function WorkspaceApp({ page }: { page: string }) {
     </div>
   );
   return (
-    <>
-      <header className="header">
+    <LocaleContext.Provider value={language}>
+      <header className="header" inert={modalOpen}>
         <Link href="/" className="brand">
           <span className="brand-icon">
             <BookOpen size={23} />
@@ -347,12 +444,12 @@ export function WorkspaceApp({ page }: { page: string }) {
           <Link className={page === "contribute" ? "active" : ""} href="/contribute">
             {t.contribute}
           </Link>
-          <Link href="/about">About</Link>
+          <Link href="/about">{tr("About")}</Link>
         </nav>
         <div className="header-actions">
           <button
             className="language"
-            title="Switch language"
+            title={tr("Switch language")}
             onClick={() => setLanguage(language === "en" ? "so" : "en")}
           >
             <Globe size={16} />
@@ -363,7 +460,7 @@ export function WorkspaceApp({ page }: { page: string }) {
             <ArrowRight size={15} />
           </Link>
           <button
-            title="Open navigation"
+            title={tr("Open navigation")}
             className="icon mobile-toggle"
             onClick={() => setMobile(!mobile)}
           >
@@ -374,22 +471,30 @@ export function WorkspaceApp({ page }: { page: string }) {
       <div className="demo-bar">
         <span>
           <span className="demo-dot" />
-          Demonstration workspace{" "}
-          <span className="demo-detail">· Authored examples, not scholar-verified data</span>
+          {tr("Demonstration workspace")}{" "}
+          <span className="demo-detail">
+            {tr("· Authored examples, not scholar-verified data")}
+          </span>
         </span>
         <span className="demo-right">
-          Local prototype <GitBranch size={13} />
+          {tr("Local prototype")}
+          <GitBranch size={13} />
         </span>
       </div>
-      <div className={isDashboard ? "app-shell" : "public-shell"}>
+      <div className={isDashboard ? "app-shell" : "public-shell"} inert={modalOpen}>
         {isDashboard && (
           <aside className="sidebar">
-            <div className="sidebar-title">COMMUNITY WORKSPACE</div>
+            <div className="sidebar-title">{tr("COMMUNITY WORKSPACE")}</div>
             {[
               ["dashboard", "Overview", LayoutDashboard],
               ["dashboard/submissions", "My submissions", FileText],
               ["dashboard/reviews", "Review queue", ListChecks],
               ["dashboard/disputes", "Disputes", MessageSquare],
+              ["dashboard/profile", "My profile", UserRound],
+              ["dashboard/scholars", "Scholar applications", GraduationCap],
+              ["dashboard/articles", "Article workspace", NotebookPen],
+              ["dashboard/releases", "Dataset releases", Package],
+              ["admin/roles", "Members and roles", Users],
               ["admin", "Administration", Settings],
             ].map(([href, label, Icon]) => {
               const I = Icon as typeof Settings;
@@ -398,31 +503,49 @@ export function WorkspaceApp({ page }: { page: string }) {
                   key={href as string}
                   className={page === href ? "side-link active" : "side-link"}
                   href={`/${href}`}
+                  title={tr(label as string)}
+                  aria-label={tr(label as string)}
                 >
                   <I size={18} />
-                  {label as string}
+                  {tr(label as string)}
                 </Link>
               );
             })}
             <div className="sidebar-bottom">
               <ShieldCheck size={22} />
-              <strong>Care before publication</strong>
-              <p>Every decision keeps its author, rationale and history.</p>
+              <strong>{tr("Care before publication")}</strong>
+              <p>{tr("Every decision keeps its author, rationale and history.")}</p>
               <Link href="/about">
-                Our governance <ArrowRight size={14} />
+                {tr("Our governance")}
+                <ArrowRight size={14} />
               </Link>
             </div>
           </aside>
         )}
-        <main data-ready={ready}>
+        <main data-ready={ready} inert={modalOpen}>
+          {[
+            "dashboard/profile",
+            "dashboard/scholars",
+            "dashboard/articles",
+            "dashboard/releases",
+            "admin/roles",
+          ].includes(page) && (
+            <CommunityPanel
+              key={page}
+              page={page}
+              workspace={workspace}
+              onChange={setWorkspace}
+              onNotice={setNotice}
+            />
+          )}
           {(page === "" || page === "datasets") && (
             <>
               <section className="intro">
                 <div className="eyebrow">
                   <span />
-                  THE SOMALI LANGUAGE COMMONS
+                  {tr("THE SOMALI LANGUAGE COMMONS")}
                 </div>
-                <h1>{page === "" ? t.title : "Dataset library"}</h1>
+                <h1>{page === "" ? t.title : tr("Dataset library")}</h1>
                 <p>
                   {page === ""
                     ? t.subtitle
@@ -431,11 +554,11 @@ export function WorkspaceApp({ page }: { page: string }) {
                 <div className="intro-actions">
                   <Link className="button primary" href="/contribute">
                     <Plus size={17} />
-                    Contribute an entry
+                    {tr("Contribute an entry")}
                   </Link>
                   <button className="button" onClick={() => download(published)}>
                     <ArrowDownToLine size={17} />
-                    Export JSONL
+                    {tr("Export JSONL")}
                   </button>
                 </div>
                 <div className="intro-mark" aria-hidden="true">
@@ -446,8 +569,10 @@ export function WorkspaceApp({ page }: { page: string }) {
               </section>
               <section className="collections">
                 <div className="section-heading">
-                  <h2>Explore the collections</h2>
-                  <span className="muted">3 collections · {published.length} demo entries</span>
+                  <h2>{tr("Explore the collections")}</h2>
+                  <span className="muted">
+                    {tr("3 collections ·")} {published.length} {tr("demo entries")}
+                  </span>
                 </div>
                 <div className="collection-grid">
                   {categories.map((c, i) => (
@@ -470,17 +595,17 @@ export function WorkspaceApp({ page }: { page: string }) {
                       </span>
                       <h3>{labels[c]}</h3>
                       <p>
-                        {
+                        {tr(
                           [
                             "Words and the meanings they carry.",
                             "Connections between two languages.",
                             "Patterns that bring language to life.",
-                          ][i]
-                        }
+                          ][i],
+                        )}
                       </p>
                       <span className="collection-meta">
-                        {published.filter((e) => e.category === c).length} entries{" "}
-                        <span>DEMO v0.1</span>
+                        {published.filter((e) => e.category === c).length} {tr("entries")}{" "}
+                        <span>{tr("DEMO v0.1")}</span>
                       </span>
                     </button>
                   ))}
@@ -488,24 +613,26 @@ export function WorkspaceApp({ page }: { page: string }) {
               </section>
               <section className="entry-section">
                 <div className="section-heading">
-                  <h2>Published entries</h2>
-                  <span className="muted">CC0 demonstration release</span>
+                  <h2>{tr("Published entries")}</h2>
+                  <span className="muted">{tr("CC0 demonstration release")}</span>
                 </div>
                 {filters}
                 {table(filtered)}
                 <div className="table-foot">
-                  <span>{filtered.length} entries</span>
-                  <span>Provenance and licensing included in every export</span>
+                  <span>
+                    {filtered.length} {tr("entries")}
+                  </span>
+                  <span>{tr("Provenance and licensing included in every export")}</span>
                 </div>
               </section>
               <section className="contribution-band">
                 <div>
-                  <div className="eyebrow">BUILT TOGETHER</div>
-                  <h2>A living language deserves a shared foundation.</h2>
-                  <p>Bring a word, a source, or a careful correction.</p>
+                  <div className="eyebrow">{tr("BUILT TOGETHER")}</div>
+                  <h2>{tr("A living language deserves a shared foundation.")}</h2>
+                  <p>{tr("Bring a word, a source, or a careful correction.")}</p>
                 </div>
                 <Link className="button primary" href="/contribute">
-                  Join the work
+                  {tr("Join the work")}
                   <ArrowRight size={17} />
                 </Link>
               </section>
@@ -514,13 +641,13 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "dashboard" && (
             <>
               <PageHeading
-                eyebrow="YOUR WORKSPACE"
-                title="Good work starts with one word."
-                description="Keep your contributions moving and the conversation open."
+                eyebrow={tr("YOUR WORKSPACE")}
+                title={tr("Good work starts with one word.")}
+                description={tr("Keep your contributions moving and the conversation open.")}
                 action={
                   <button className="button primary" onClick={() => newProposal()}>
                     <Plus size={17} />
-                    New contribution
+                    {tr("New contribution")}
                   </button>
                 }
               />
@@ -549,21 +676,21 @@ export function WorkspaceApp({ page }: { page: string }) {
                   ["Published entries", published.length],
                 ].map(([label, value]) => (
                   <div key={label}>
-                    <span>{label}</span>
+                    <span>{tr(String(label))}</span>
                     <strong>{value}</strong>
                   </div>
                 ))}
               </div>
               <div className="section-heading">
-                <h2>Recent contributions</h2>
+                <h2>{tr("Recent contributions")}</h2>
                 <Link href="/dashboard/submissions">
-                  View all
+                  {tr("View all")}
                   <ArrowRight size={15} />
                 </Link>
               </div>
               {table(workspace.entries.filter((e) => e.status !== "published").slice(0, 6))}
               <section className="activity">
-                <h2>Activity log</h2>
+                <h2>{tr("Activity log")}</h2>
                 {workspace.events.length ? (
                   workspace.events
                     .slice(-5)
@@ -574,14 +701,16 @@ export function WorkspaceApp({ page }: { page: string }) {
                         <div>
                           <strong>{labels[e.action] ?? e.action}</strong>
                           <p>
-                            {e.actor} · {e.rationale}
+                            {e.actor}
+                            {tr("·")}
+                            {e.rationale}
                           </p>
                         </div>
                         <time>{new Date(e.at).toLocaleDateString("en-GB")}</time>
                       </div>
                     ))
                 ) : (
-                  <p className="muted">Your recorded decisions will appear here.</p>
+                  <p className="muted">{tr("Your recorded decisions will appear here.")}</p>
                 )}
               </section>
             </>
@@ -589,13 +718,15 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "dashboard/submissions" && (
             <>
               <PageHeading
-                eyebrow="CONTRIBUTIONS"
-                title="My submissions"
-                description="Your drafts, proposals and corrections, with every revision preserved."
+                eyebrow={tr("CONTRIBUTIONS")}
+                title={tr("My submissions")}
+                description={tr(
+                  "Your drafts, proposals and corrections, with every revision preserved.",
+                )}
                 action={
                   <button className="button primary" onClick={() => newProposal()}>
                     <Plus size={17} />
-                    New contribution
+                    {tr("New contribution")}
                   </button>
                 }
               />
@@ -610,9 +741,11 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "dashboard/reviews" && (
             <>
               <PageHeading
-                eyebrow="EDITORIAL WORKSPACE"
-                title="Review queue"
-                description="Independent review gives every contribution a stronger foundation."
+                eyebrow={tr("EDITORIAL WORKSPACE")}
+                title={tr("Review queue")}
+                description={tr(
+                  "Independent review gives every contribution a stronger foundation.",
+                )}
               />
               <RoleControl
                 workspace={workspace}
@@ -625,9 +758,11 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "dashboard/disputes" && (
             <>
               <PageHeading
-                eyebrow="EDITORIAL WORKSPACE"
-                title="Linguistic disputes"
-                description="Record positions, examine evidence and preserve accepted variation."
+                eyebrow={tr("EDITORIAL WORKSPACE")}
+                title={tr("Linguistic disputes")}
+                description={tr(
+                  "Record positions, examine evidence and preserve accepted variation.",
+                )}
               />
               <RoleControl
                 workspace={workspace}
@@ -639,9 +774,17 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "articles" && (
             <>
               <PageHeading
-                eyebrow="READ & REFLECT"
-                title="From the commons"
-                description="Project notes on language, contribution and the care behind our datasets."
+                eyebrow={tr("READ & REFLECT")}
+                title={tr("From the commons")}
+                description={tr(
+                  "Project notes on language, contribution and the care behind our datasets.",
+                )}
+              />
+              <CommunityPanel
+                page="articles"
+                workspace={workspace}
+                onChange={setWorkspace}
+                onNotice={setNotice}
               />
               <div className="article-list">
                 {articles.map((a, i) => (
@@ -654,7 +797,7 @@ export function WorkspaceApp({ page }: { page: string }) {
                       <span className="eyebrow">{a.category}</span>
                       <h2>{a.title}</h2>
                       <p>{a.description}</p>
-                      <span className="muted">qaamuusAi · Project note · 3 min read</span>
+                      <span className="muted">{tr("qaamuusAi · Project note · 3 min read")}</span>
                     </div>
                     <ArrowRight size={22} />
                   </button>
@@ -665,37 +808,39 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "about" && (
             <>
               <PageHeading
-                eyebrow="ABOUT QAAMUUSAI"
-                title="Language is shared. So is this work."
-                description="An open foundation for Somali language resources, built with community knowledge and independent linguistic review."
+                eyebrow={tr("ABOUT QAAMUUSAI")}
+                title={tr("Language is shared. So is this work.")}
+                description={tr(
+                  "An open foundation for Somali language resources, built with community knowledge and independent linguistic review.",
+                )}
               />
               <div className="prose">
-                <h2>Our mission</h2>
+                <h2>{tr("Our mission")}</h2>
                 <p>
-                  Help scholars, linguists, educators and contributors create, review and publish
-                  high-quality Somali language datasets. These resources can support translation,
-                  language learning, developer libraries and future research.
+                  {tr(
+                    "Help scholars, linguists, educators and contributors create, review and publish high-quality Somali language datasets. These resources can support translation, language learning, developer libraries and future research.",
+                  )}
                 </p>
-                <h2>Authority follows the work</h2>
+                <h2>{tr("Authority follows the work")}</h2>
                 <p>
-                  Contributors propose. Reviewers examine. Editors coordinate publication and
-                  disputes. Technical administrators operate the platform. Technical access does not
-                  confer linguistic authority.
+                  {tr(
+                    "Contributors propose. Reviewers examine. Editors coordinate publication and disputes. Technical administrators operate the platform. Technical access does not confer linguistic authority.",
+                  )}
                 </p>
-                <h2>Sources, variation and permissions</h2>
+                <h2>{tr("Sources, variation and permissions")}</h2>
                 <p>
-                  Every entry carries provenance, licensing and version metadata. Corrections create
-                  revisions. Published versions stay intact. Disagreements and evidence remain part
-                  of the record.
+                  {tr(
+                    "Every entry carries provenance, licensing and version metadata. Corrections create revisions. Published versions stay intact. Disagreements and evidence remain part of the record.",
+                  )}
                 </p>
-                <h2>A provisional beginning</h2>
+                <h2>{tr("A provisional beginning")}</h2>
                 <p>
-                  The governance process awaits approval by founding scholars. All data shown in
-                  this local prototype is clearly marked demonstration material. No AI training,
-                  external accounts or public deployment are included.
+                  {tr(
+                    "The governance process awaits approval by founding scholars. All data shown in this local prototype is clearly marked demonstration material. No AI training, external accounts or public deployment are included.",
+                  )}
                 </p>
                 <Link className="button primary" href="/contribute">
-                  Contribute to the commons
+                  {tr("Contribute to the commons")}
                   <ArrowRight size={17} />
                 </Link>
               </div>
@@ -704,13 +849,15 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "contribute" && (
             <>
               <PageHeading
-                eyebrow="MAKE A CONTRIBUTION"
-                title="Your knowledge has a place here."
-                description="Start with a word, a translation, a grammar note or a sourced correction."
+                eyebrow={tr("MAKE A CONTRIBUTION")}
+                title={tr("Your knowledge has a place here.")}
+                description={tr(
+                  "Start with a word, a translation, a grammar note or a sourced correction.",
+                )}
               />
               <div className="contribute-layout">
                 <div className="prose">
-                  <h2>A careful path to publication</h2>
+                  <h2>{tr("A careful path to publication")}</h2>
                   <ol className="steps">
                     {[
                       [
@@ -733,8 +880,8 @@ export function WorkspaceApp({ page }: { page: string }) {
                       <li key={title}>
                         <span>{i + 1}</span>
                         <div>
-                          <h3>{title}</h3>
-                          <p>{body}</p>
+                          <h3>{tr(title)}</h3>
+                          <p>{tr(body)}</p>
                         </div>
                       </li>
                     ))}
@@ -742,8 +889,8 @@ export function WorkspaceApp({ page }: { page: string }) {
                 </div>
                 <div className="contribute-aside">
                   <BookOpen size={34} />
-                  <h2>Start with one entry</h2>
-                  <p>A source and a clear meaning are a good beginning.</p>
+                  <h2>{tr("Start with one entry")}</h2>
+                  <p>{tr("A source and a clear meaning are a good beginning.")}</p>
                   <button
                     className="button primary"
                     onClick={() => {
@@ -752,10 +899,10 @@ export function WorkspaceApp({ page }: { page: string }) {
                     }}
                   >
                     <Plus size={18} />
-                    Create a demo draft
+                    {tr("Create a demo draft")}
                   </button>
                   <Link href="/dashboard/submissions">
-                    My contributions
+                    {tr("My contributions")}
                     <ArrowRight size={16} />
                   </Link>
                 </div>
@@ -766,9 +913,9 @@ export function WorkspaceApp({ page }: { page: string }) {
           {page === "admin" && (
             <>
               <PageHeading
-                eyebrow="PLATFORM OPERATIONS"
-                title="Administration"
-                description="Operational access is separate from linguistic authority."
+                eyebrow={tr("PLATFORM OPERATIONS")}
+                title={tr("Administration")}
+                description={tr("Operational access is separate from linguistic authority.")}
               />
               <RoleControl
                 workspace={workspace}
@@ -777,51 +924,59 @@ export function WorkspaceApp({ page }: { page: string }) {
               {workspace.role !== "technical_admin" ? (
                 <div className="empty">
                   <ShieldCheck size={32} />
-                  <h2>Technical administrator role required</h2>
-                  <p>Choose the demo administrator role to inspect the operations view.</p>
+                  <h2>{tr("Technical administrator role required")}</h2>
+                  <p>{tr("Choose the demo administrator role to inspect the operations view.")}</p>
                 </div>
               ) : (
                 <>
                   <div className="admin-grid">
                     <section>
-                      <h2>Environment</h2>
+                      <h2>{tr("Environment")}</h2>
                       <dl>
-                        <dt>Workspace</dt>
-                        <dd>Browser-local demo</dd>
-                        <dt>Shared data</dt>
-                        <dd>Not connected in this interface</dd>
-                        <dt>Governance</dt>
-                        <dd>Provisional</dd>
-                        <dt>Editorial override</dt>
-                        <dd>Disabled</dd>
+                        <dt>{tr("Workspace")}</dt>
+                        <dd>{tr("Browser-local demo")}</dd>
+                        <dt>{tr("Shared data")}</dt>
+                        <dd>{tr("Not connected in this interface")}</dd>
+                        <dt>{tr("Governance")}</dt>
+                        <dd>{tr("Provisional")}</dd>
+                        <dt>{tr("Editorial override")}</dt>
+                        <dd>{tr("Disabled")}</dd>
                       </dl>
                     </section>
                     <section>
-                      <h2>Demo data</h2>
-                      <p>Restore the initial examples and remove local proposals and decisions.</p>
+                      <h2>{tr("Demo data")}</h2>
+                      <p>
+                        {tr(
+                          "Restore the initial examples and remove local proposals and decisions.",
+                        )}
+                      </p>
                       <button
                         className="button danger"
                         onClick={() => {
                           if (
-                            window.confirm("Reset all demo proposals and history in this browser?")
+                            window.confirm(
+                              tr("Reset all demo proposals and history in this browser?"),
+                            )
                           ) {
                             setWorkspace({ ...initialWorkspace, role: "technical_admin" });
                             setNotice("Demo workspace reset.");
                           }
                         }}
                       >
-                        Reset demo workspace
+                        {tr("Reset demo workspace")}
                       </button>
                     </section>
                   </div>
-                  <h2>Audit history</h2>
+                  <h2>{tr("Audit history")}</h2>
                   {workspace.events.length ? (
                     workspace.events.map((e) => (
                       <div className="activity-row" key={e.id}>
                         <ShieldCheck size={16} />
                         <div>
                           <strong>
-                            {e.actor} · {labels[e.action] ?? e.action}
+                            {e.actor}
+                            {tr("·")}
+                            {labels[e.action] ?? e.action}
                           </strong>
                           <p>{e.rationale}</p>
                         </div>
@@ -829,7 +984,7 @@ export function WorkspaceApp({ page }: { page: string }) {
                       </div>
                     ))
                   ) : (
-                    <p className="muted">No local decisions recorded.</p>
+                    <p className="muted">{tr("No local decisions recorded.")}</p>
                   )}
                 </>
               )}
@@ -838,21 +993,21 @@ export function WorkspaceApp({ page }: { page: string }) {
         </main>
       </div>
       {!isDashboard && (
-        <footer>
+        <footer inert={modalOpen}>
           <Link className="brand" href="/">
             <BookOpen size={20} />
             qaamuusAi
           </Link>
-          <span>Language. Knowledge. Together.</span>
-          <Link href="/about">Governance</Link>
-          <Link href="/login">Sign in</Link>
-          <span>Prototype · v0.1</span>
+          <span>{tr("Language. Knowledge. Together.")}</span>
+          <Link href="/about">{tr("Governance")}</Link>
+          <Link href="/login">{tr("Sign in")}</Link>
+          <span>{tr("Prototype · v0.1")}</span>
         </footer>
       )}
       {notice && (
         <div className="toast" role="status">
-          <span>{notice}</span>
-          <button className="icon" title="Dismiss message" onClick={() => setNotice("")}>
+          <span>{tr(notice)}</span>
+          <button className="icon" title={tr("Dismiss message")} onClick={() => setNotice("")}>
             <X size={17} />
           </button>
         </div>
@@ -863,19 +1018,23 @@ export function WorkspaceApp({ page }: { page: string }) {
             className="modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Create contribution"
+            aria-label={tr("Create contribution")}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-head">
               <div>
-                <span className="eyebrow">CONTRIBUTION</span>
+                <span className="eyebrow">{tr("CONTRIBUTION")}</span>
                 <h2>
                   {original
-                    ? `${original.status === "published" ? "Propose a correction" : "Edit proposal"}: ${original.term}`
-                    : "Create a draft"}
+                    ? `${tr(original.status === "published" ? "Propose a correction" : "Edit proposal")}: ${original.term}`
+                    : tr("Create a draft")}
                 </h2>
               </div>
-              <button className="icon" title="Close draft form" onClick={() => setForm(false)}>
+              <button
+                className="icon"
+                title={tr("Close draft form")}
+                onClick={() => setForm(false)}
+              >
                 <X />
               </button>
             </div>
@@ -892,15 +1051,19 @@ export function WorkspaceApp({ page }: { page: string }) {
                   setForm(false);
                   setNotice("Draft saved. Open My submissions to submit it for review.");
                 } catch (error) {
-                  setNotice((error as Error).message);
+                  setNotice(readableError(error));
                 }
               }}
             >
               <div className="form-grid">
-                <Field label="Somali word / expression" name="term" value={original?.term} />
-                <Field label="English meaning" name="translation" value={original?.translation} />
+                <Field label={tr("Somali word / expression")} name="term" value={original?.term} />
+                <Field
+                  label={tr("English meaning")}
+                  name="translation"
+                  value={original?.translation}
+                />
                 <label>
-                  Collection
+                  {tr("Collection")}
                   <select name="category" defaultValue={original?.category ?? "vocabulary"}>
                     {categories.map((c) => (
                       <option key={c} value={c}>
@@ -910,36 +1073,36 @@ export function WorkspaceApp({ page }: { page: string }) {
                   </select>
                 </label>
                 <Field
-                  label="Dialect / regional variation"
+                  label={tr("Dialect / regional variation")}
                   name="dialect"
                   value={original?.dialect ?? "Unspecified"}
                 />
               </div>
               <Field
-                label="Source / provenance"
+                label={tr("Source / provenance")}
                 name="source"
                 value={original?.source}
-                placeholder="Authored example or source citation"
+                placeholder={tr("Authored example or source citation")}
               />
               <label>
-                Redistribution license
+                {tr("Redistribution license")}
                 <select name="license" defaultValue={original?.license ?? "Permission pending"}>
-                  <option>Permission pending</option>
-                  <option>CC0-1.0</option>
-                  <option>CC-BY-4.0</option>
+                  <option value="Permission pending">{tr("Permission pending")}</option>
+                  <option>{tr("CC0-1.0")}</option>
+                  <option>{tr("CC-BY-4.0")}</option>
                 </select>
               </label>
               <label>
-                Notes
+                {tr("Notes")}
                 <textarea name="notes" defaultValue={original?.notes} rows={3} />
               </label>
               <div className="modal-foot">
                 <button type="button" className="button" onClick={() => setForm(false)}>
-                  Cancel
+                  {tr("Cancel")}
                 </button>
                 <button className="button primary">
                   <Check size={17} />
-                  Save draft
+                  {tr("Save draft")}
                 </button>
               </div>
             </form>
@@ -952,20 +1115,23 @@ export function WorkspaceApp({ page }: { page: string }) {
             className="modal detail"
             role="dialog"
             aria-modal="true"
-            aria-label="Entry details"
+            aria-label={tr("Entry details")}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-head">
               <div>
                 <span className="eyebrow">
-                  {labels[current.category]} · v{current.version}.0
+                  {labels[current.category]}
+                  {tr("· v")}
+                  {current.version}
+                  {tr(".0")}
                 </span>
                 <h2>{current.term}</h2>
                 <p>{current.translation}</p>
               </div>
               <button
                 className="icon"
-                title="Close entry details"
+                title={tr("Close entry details")}
                 onClick={() => setSelected(null)}
               >
                 <X />
@@ -974,18 +1140,18 @@ export function WorkspaceApp({ page }: { page: string }) {
             <Badge status={current.status} />
             <p>{current.notes}</p>
             <dl className="metadata">
-              <dt>Source</dt>
+              <dt>{tr("Source")}</dt>
               <dd>{current.source}</dd>
-              <dt>License</dt>
+              <dt>{tr("License")}</dt>
               <dd>{current.license}</dd>
-              <dt>Variation</dt>
+              <dt>{tr("Variation")}</dt>
               <dd>{current.dialect}</dd>
-              <dt>Contributor</dt>
+              <dt>{tr("Contributor")}</dt>
               <dd>{current.contributor}</dd>
-              <dt>Reviewer</dt>
-              <dd>{current.reviewer ?? "Not yet reviewed"}</dd>
-              <dt>Data classification</dt>
-              <dd>Demonstration only</dd>
+              <dt>{tr("Reviewer")}</dt>
+              <dd>{current.reviewer ?? tr("Not yet reviewed")}</dd>
+              <dt>{tr("Data classification")}</dt>
+              <dd>{tr("Demonstration only")}</dd>
             </dl>
             {current.status === "published" ? (
               <button
@@ -996,55 +1162,55 @@ export function WorkspaceApp({ page }: { page: string }) {
                 }}
               >
                 <GitBranch size={17} />
-                Propose a correction
+                {tr("Propose a correction")}
               </button>
             ) : (
               <>
                 <label>
-                  Decision rationale
+                  {tr("Decision rationale")}
                   <textarea
                     value={rationale}
                     onChange={(e) => setRationale(e.target.value)}
                     rows={3}
-                    placeholder="Record your reasoning or supporting evidence"
+                    placeholder={tr("Record your reasoning or supporting evidence")}
                   />
                 </label>
                 <div className="decision-actions">
                   {current.status === "draft" || current.status === "changes_requested" ? (
                     <button className="button primary" onClick={() => act("submitted")}>
-                      Submit for review
+                      {tr("Submit for review")}
                       <ArrowRight size={16} />
                     </button>
                   ) : current.status === "submitted" ? (
                     <button className="button primary" onClick={() => act("under_review")}>
-                      Begin review
+                      {tr("Begin review")}
                     </button>
                   ) : current.status === "under_review" ? (
                     <>
                       <button className="button primary" onClick={() => act("approved")}>
                         <Check size={16} />
-                        Approve
+                        {tr("Approve")}
                       </button>
                       <button className="button" onClick={() => act("changes_requested")}>
-                        Request changes
+                        {tr("Request changes")}
                       </button>
                       <button className="button" onClick={() => act("disputed")}>
-                        Open dispute
+                        {tr("Open dispute")}
                       </button>
                       <button className="button danger" onClick={() => act("rejected")}>
-                        Reject
+                        {tr("Reject")}
                       </button>
                     </>
                   ) : current.status === "approved" ? (
                     <button className="button primary" onClick={() => act("published")}>
-                      Publish entry
+                      {tr("Publish entry")}
                     </button>
                   ) : current.status === "disputed" ? (
                     <button className="button primary" onClick={() => act("under_review")}>
-                      Resolve and return to review
+                      {tr("Resolve and return to review")}
                     </button>
                   ) : (
-                    <p className="muted">This proposal is closed.</p>
+                    <p className="muted">{tr("This proposal is closed.")}</p>
                   )}
                 </div>
                 {current.status === "disputed" && (
@@ -1055,29 +1221,16 @@ export function WorkspaceApp({ page }: { page: string }) {
                       const data = new FormData(e.currentTarget);
                       const position = String(data.get("position"));
                       const source = String(data.get("source"));
-                      if (workspace.role === "technical_admin") {
-                        setNotice("Editorial access is required to add evidence.");
-                        return;
+                      try {
+                        setWorkspace(addEvidence(workspace, current, { position, source }));
+                        e.currentTarget.reset();
+                        setNotice("Position and evidence preserved.");
+                      } catch (error) {
+                        setNotice(readableError(error));
                       }
-                      setWorkspace({
-                        ...workspace,
-                        evidence: [
-                          ...workspace.evidence,
-                          {
-                            id: crypto.randomUUID(),
-                            entryId: current.id,
-                            actor: actors[workspace.role],
-                            position,
-                            source,
-                            at: new Date().toISOString(),
-                          },
-                        ],
-                      });
-                      e.currentTarget.reset();
-                      setNotice("Position and evidence preserved.");
                     }}
                   >
-                    <h3>Positions & evidence</h3>
+                    <h3>{tr("Positions & evidence")}</h3>
                     {workspace.evidence
                       .filter((e) => e.entryId === current.id)
                       .map((e) => (
@@ -1087,29 +1240,92 @@ export function WorkspaceApp({ page }: { page: string }) {
                           <cite>{e.source}</cite>
                         </blockquote>
                       ))}
-                    <Field label="Your position" name="position" />
-                    <Field label="Supporting source" name="source" />
+                    <Field label={tr("Your position")} name="position" />
+                    <Field label={tr("Supporting source")} name="source" />
                     <button className="button">
                       <Plus size={16} />
-                      Add evidence
+                      {tr("Add evidence")}
                     </button>
                   </form>
                 )}
               </>
+            )}
+            {hasPermission(workspace.community, workspace.role, "editor") &&
+              ["submitted", "under_review", "changes_requested"].includes(current.status) && (
+                <form className="record-band" onSubmit={recordAssignment}>
+                  <h3>{tr("Reviewer assignment")}</h3>
+                  <label>
+                    {tr("Reviewer")}
+                    <select name="reviewer">
+                      {workspace.community.members
+                        .filter((m) => m.roles.includes("reviewer") || m.roles.includes("editor"))
+                        .map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <Field label={tr("Assignment rationale")} name="reason" />
+                  <button className="button">
+                    <Check size={16} />
+                    {tr("Assign reviewer")}
+                  </button>
+                </form>
+              )}
+            {!["published", "superseded"].includes(current.status) && (
+              <section className="record-band">
+                <h3>{tr("Discussion")}</h3>
+                {workspace.community.comments
+                  .filter((c) => c.entryId === current.id)
+                  .map((c) => (
+                    <blockquote key={c.id}>
+                      <strong>
+                        {workspace.community.members.find((m) => m.id === c.author)?.name}
+                      </strong>
+                      <p>{c.body}</p>
+                    </blockquote>
+                  ))}
+                <form onSubmit={recordComment}>
+                  <label>
+                    {tr("Comment")}
+                    <textarea name="comment" required rows={3} maxLength={10000} />
+                  </label>
+                  <button className="button">
+                    <MessageSquare size={16} />
+                    {tr("Add comment")}
+                  </button>
+                </form>
+              </section>
+            )}
+            {workspace.community.resolutions.some((r) => r.entryId === current.id) && (
+              <section className="record-band">
+                <h3>{tr("Resolution history")}</h3>
+                {workspace.community.resolutions
+                  .filter((r) => r.entryId === current.id)
+                  .map((r, i) => (
+                    <blockquote key={i}>
+                      <strong>
+                        {workspace.community.members.find((m) => m.id === r.editor)?.name}
+                      </strong>
+                      <p>{r.rationale}</p>
+                    </blockquote>
+                  ))}
+              </section>
             )}
             {workspace.role === "contributor" &&
               current.contributor === actors.contributor &&
               ["draft", "changes_requested"].includes(current.status) && (
                 <button className="button edit-proposal" onClick={() => newProposal(current)}>
                   <FileText size={16} />
-                  Edit proposal
+                  {tr("Edit proposal")}
                 </button>
               )}
             <div className="history">
-              <h3>Revision history</h3>
+              <h3>{tr("Revision history")}</h3>
               {workspace.events.filter((e) => e.entryId === current.id).length === 0 ? (
                 <p className="muted">
-                  Initial demonstration record ·{" "}
+                  {tr("Initial demonstration record ·")}{" "}
                   {new Date(current.created_at).toLocaleDateString("en-GB")}
                 </p>
               ) : (
@@ -1120,12 +1336,18 @@ export function WorkspaceApp({ page }: { page: string }) {
                       <strong>{labels[e.action] ?? e.action}</strong>
                       <p>{e.rationale}</p>
                       <small>
-                        {e.actor} · {new Date(e.at).toLocaleString("en-GB")}
+                        {e.actor}
+                        {tr("·")}
+                        {new Date(e.at).toLocaleString("en-GB")}
                       </small>
                       <details>
-                        <summary>Recorded version</summary>
+                        <summary>{tr("Recorded version")}</summary>
                         <p>
-                          {e.snapshot.term} · {e.snapshot.translation} · {e.snapshot.source}
+                          {e.snapshot.term}
+                          {tr("·")}
+                          {e.snapshot.translation}
+                          {tr("·")}
+                          {e.snapshot.source}
                         </p>
                       </details>
                     </div>
@@ -1141,22 +1363,22 @@ export function WorkspaceApp({ page }: { page: string }) {
             className="modal prose"
             role="dialog"
             aria-modal="true"
-            aria-label="Project article"
+            aria-label={tr("Project article")}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-head">
-              <span className="eyebrow">PROJECT NOTE</span>
-              <button className="icon" title="Close article" onClick={() => setArticle(null)}>
+              <span className="eyebrow">{tr("PROJECT NOTE")}</span>
+              <button className="icon" title={tr("Close article")} onClick={() => setArticle(null)}>
                 <X />
               </button>
             </div>
             <h1>{articles[article].title}</h1>
             <p>{articles[article].body}</p>
-            <p className="muted">qaamuusAi · Provisional editorial guidance</p>
+            <p className="muted">{tr("qaamuusAi · Provisional editorial guidance")}</p>
           </section>
         </div>
       )}
-    </>
+    </LocaleContext.Provider>
   );
 }
 function PageHeading({
@@ -1170,12 +1392,13 @@ function PageHeading({
   description: string;
   action?: React.ReactNode;
 }) {
+  const { tr } = useLocale();
   return (
     <div className="page-heading">
       <div>
-        <span className="eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-        <p>{description}</p>
+        <span className="eyebrow">{tr(eyebrow)}</span>
+        <h1>{tr(title)}</h1>
+        <p>{tr(description)}</p>
       </div>
       {action}
     </div>
@@ -1188,20 +1411,21 @@ function RoleControl({
   workspace: Workspace;
   onChange: (role: Role) => void;
 }) {
+  const { tr } = useLocale();
   return (
     <div className="role-control">
       <div>
         <CircleHelp size={17} />
-        <span>Demo identity</span>
+        <span>{tr("Demo identity")}</span>
       </div>
       <select
-        aria-label="Demo role"
+        aria-label={tr("Demo role")}
         value={workspace.role}
         onChange={(e) => onChange(e.target.value as Role)}
       >
         {roles.map((r) => (
           <option key={r} value={r}>
-            {labels[r]}
+            {tr(baseLabels[r])}
           </option>
         ))}
       </select>
@@ -1220,13 +1444,14 @@ function Field({
   value?: string;
   placeholder?: string;
 }) {
+  const { tr } = useLocale();
   return (
     <label>
-      {label}
+      {tr(label)}
       <input
         name={name}
         defaultValue={value}
-        placeholder={placeholder}
+        placeholder={placeholder ? tr(placeholder) : undefined}
         required
         maxLength={10000}
       />
@@ -1234,11 +1459,12 @@ function Field({
   );
 }
 function Login({ onNotice }: { onNotice: (message: string) => void }) {
+  const { tr } = useLocale();
   return (
     <div className="login">
       <ShieldCheck size={35} />
-      <h1>Welcome to the commons</h1>
-      <p>Sign in with your existing community account.</p>
+      <h1>{tr("Welcome to the commons")}</h1>
+      <p>{tr("Sign in with your existing community account.")}</p>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -1257,18 +1483,18 @@ function Login({ onNotice }: { onNotice: (message: string) => void }) {
         }}
       >
         <label>
-          Email address
-          <input type="email" name="email" required placeholder="you@example.com" />
+          {tr("Email address")}
+          <input type="email" name="email" required placeholder={tr("you@example.com")} />
         </label>
         <button className="button primary">
-          Send sign-in link
+          {tr("Send sign-in link")}
           <ArrowRight size={17} />
         </button>
       </form>
       <div className="login-demo">
-        <span>Exploring the prototype?</span>
+        <span>{tr("Exploring the prototype?")}</span>
         <Link href="/dashboard">
-          Open the demo workspace
+          {tr("Open the demo workspace")}
           <ArrowRight size={16} />
         </Link>
       </div>

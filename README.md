@@ -33,7 +33,12 @@ python -m venv .venv
 - Draft proposals, corrections, editing, independent reviews, changes requested, rejection, disputes, evidence and editor-led publication.
 - Preserved published versions and per-decision snapshots in demo history.
 - Dashboard, submissions, review queue, disputes, operational administration, project articles, about, contribution and sign-in pages.
-- English/Somali navigation and introductory copy; remaining editorial UI is English.
+- Profiles, scholar applications, independent application decisions and audited grants/revocations with combined roles.
+- Reviewer assignments, persistent discussions, evidence and editor resolution histories.
+- Article drafts, revisions, independent review, publication and separately proposed corrections.
+- Immutable versioned dataset releases, JSONL downloads and per-entry licensing/attribution manifests.
+- English/Somali interface labels, editorial controls and project copy with a persistent language preference. Contributed content retains its original language; Somali copy needs scholar review.
+- Keyboard focus handling, automated accessibility checks, security headers and recovery copies for invalid browser saves.
 - Authenticated API foundation and database-enforced authorization for shared submissions and reviews.
 - Pydantic validator for schema, types, duplicate IDs, missing fields, provenance, licensing, encoding and release eligibility.
 
@@ -68,9 +73,9 @@ The current interface remains a browser-local demo even when Supabase variables 
 
 ## Limitations and next steps
 
-This is a functioning local prototype, not a production release. Both SQL migrations are executed and tested in embedded PostgreSQL (PGlite) with synthetic Supabase roles and identities, covering RLS, snapshots, self-elevation, administrator boundaries, publication, corrections and disputes. A full Supabase instance and real email/session integration remain unverified. Article editorial submission/publication, scholar application decisions, audited role-grant tooling, release manifests and complete localization remain future work. Published demonstration status simulates approval and is not scholarly validation. The SDK is a placeholder. Approval policies must be ratified by founding scholars.
+This is a functioning local prototype, not a production release. The follow-on phases for onboarding, editorial workflows, articles/releases and localization/accessibility are implemented using synthetic browser-local identities. These capabilities are not yet wired to Supabase. Both original SQL migrations are tested in embedded PostgreSQL (PGlite); the newer profile, role, article and release workflows still need server endpoints and database policies when Supabase integration resumes. Real authentication, email/session integration and multi-user concurrency remain unverified. Published demonstration status simulates approval and is not scholarly validation. The SDK is a placeholder. Founding scholars must ratify governance and review Somali interface copy.
 
-Next: test RLS with a local Supabase instance and several synthetic users; connect the interface to the authenticated API; finish onboarding and article workflows; approve governance and licenses; then conduct accessibility and security review before considering deployment.
+Supabase work is paused at the user's request. Next: connect the completed local workflows to authenticated shared persistence, add corresponding RPCs and RLS for role decisions/articles/releases, test sessions and multi-user concurrency, and obtain governance/language approval before deployment. The demo selector must never become a real role-switching mechanism.
 
 ## Licensing
 

@@ -11,6 +11,11 @@ const pages = [
   "dashboard/submissions",
   "dashboard/reviews",
   "dashboard/disputes",
+  "dashboard/profile",
+  "dashboard/scholars",
+  "dashboard/articles",
+  "dashboard/releases",
+  "admin/roles",
   "admin",
 ];
 export default async function Page({ params }: { params: Promise<{ path?: string[] }> }) {

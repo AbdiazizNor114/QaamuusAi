@@ -1,7 +1,133 @@
 @import "tailwindcss";
+.community-panel {
+  min-width: 0;
+}
+.editor-form {
+  max-width: 760px;
+  padding: 24px 0 32px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+}
+.record-band {
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  min-width: 0;
+}
+.record-band p {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.record-band blockquote {
+  padding: 14px 16px;
+  border-left: 3px solid var(--green);
+  background: #f3f7f4;
+  margin: 14px 0;
+}
+.record-band blockquote p {
+  margin: 5px 0;
+}
+.permission-list {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  color: var(--green);
+  font-size: 12px;
+}
+.community-panel .role-control label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.community-panel .role-control select {
+  width: auto;
+}
+.article-row.compact {
+  grid-template-columns: 32px 1fr;
+  gap: 18px;
+}
+.article-body {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  margin: 24px 0;
+  overflow-wrap: anywhere;
+}
+.article-row > div {
+  min-width: 0;
+}
+.article-row h2,
+.article-detail h2,
+.history strong {
+  overflow-wrap: anywhere;
+}
+.article-detail pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  max-width: 100%;
+  color: var(--muted);
+}
+.article-detail .activity-row > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.check-row input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--green);
+}
+.check-row span:last-child {
+  margin-left: auto;
+}
+.editor-form fieldset {
+  border: 1px solid var(--line);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+.editor-form legend {
+  font-size: 12px;
+  padding: 0 6px;
+}
+.badge.accepted {
+  background: #e8f4ea;
+  color: #39754d;
+}
+.badge.declined {
+  background: #fae7e9;
+  color: #a3424e;
+}
+.community-panel .article-list {
+  margin: 20px 0;
+}
+.community-panel h2 {
+  margin-bottom: 15px;
+}
+.community-panel .page-heading h1 {
+  overflow-wrap: anywhere;
+}
+.role-control {
+  min-width: 0;
+}
+.role-control .muted {
+  overflow-wrap: anywhere;
+}
 :root {
   --ink: #202622;
-  --muted: #6b746f;
+  --muted: #58645c;
   --line: #e1e7e3;
   --green: #166949;
   --green-light: #eaf4ee;

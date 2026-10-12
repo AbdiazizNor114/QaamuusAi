@@ -4,7 +4,17 @@ import {
   type Status,
   canTransition,
   proposalSchema,
+  entrySchema,
+  roles,
 } from "@qaamuusai/schemas";
+import {
+  communitySchema,
+  initialCommunity,
+  hasPermission,
+  canDiscuss,
+  type Community,
+} from "./community";
+import { z } from "zod";
 export const demoTime = "2026-10-12T09:00:00.000Z";
 const base = {
   source: "qaamuusAi authored demonstration; not scholar-verified",
@@ -91,12 +101,19 @@ export type Evidence = {
   source: string;
   at: string;
 };
-export type Workspace = { entries: Entry[]; events: Event[]; evidence: Evidence[]; role: Role };
+export type Workspace = {
+  entries: Entry[];
+  events: Event[];
+  evidence: Evidence[];
+  role: Role;
+  community: Community;
+};
 export const initialWorkspace: Workspace = {
   entries: demoEntries,
   events: [],
   evidence: [],
   role: "contributor",
+  community: initialCommunity,
 };
 export const actors: Record<Role, string> = {
   contributor: "Demo contributor",
@@ -113,7 +130,24 @@ export function advance(
   const entry = workspace.entries.find((e) => e.id === id);
   if (!entry) throw new Error("Entry not found.");
   const actor = actors[workspace.role];
-  if (!canTransition(entry.status, to, workspace.role, entry.contributor === actor))
+  const assignment = workspace.community.assignments.find((a) => a.entryId === id);
+  if (
+    to !== "submitted" &&
+    assignment &&
+    assignment.reviewer !== workspace.role &&
+    !hasPermission(workspace.community, workspace.role, "editor")
+  )
+    throw new Error("This proposal is assigned to another reviewer.");
+  const permission =
+    to === "submitted"
+      ? "contributor"
+      : hasPermission(workspace.community, workspace.role, "editor")
+        ? "editor"
+        : "reviewer";
+  if (
+    !hasPermission(workspace.community, workspace.role, permission) ||
+    !canTransition(entry.status, to, permission, entry.contributor === actor)
+  )
     throw new Error("Your current role cannot make this decision.");
   if (!rationale.trim()) throw new Error("Add a rationale before recording this decision.");
   if (to === "published" && entry.license === "Permission pending")
@@ -127,6 +161,16 @@ export function advance(
   };
   return {
     ...workspace,
+    community:
+      entry.status === "disputed"
+        ? {
+            ...workspace.community,
+            resolutions: [
+              ...workspace.community.resolutions,
+              { entryId: id, editor: workspace.role, rationale: rationale.trim(), at },
+            ],
+          }
+        : workspace.community,
     entries: workspace.entries.map((e) => (e.id === id ? updated : e)),
     events: [
       ...workspace.events,
@@ -142,8 +186,64 @@ export function advance(
     ],
   };
 }
+export function restoreWorkspace(input: unknown): Workspace {
+  return z
+    .object({
+      entries: z.array(entrySchema),
+      role: z.enum(roles),
+      events: z.array(
+        z.object({
+          id: z.uuid(),
+          entryId: z.uuid(),
+          actor: z.string(),
+          action: z.string(),
+          rationale: z.string(),
+          at: z.iso.datetime(),
+          snapshot: entrySchema,
+        }),
+      ),
+      evidence: z.array(
+        z.object({
+          id: z.uuid(),
+          entryId: z.uuid(),
+          actor: z.string(),
+          position: z.string(),
+          source: z.string(),
+          at: z.iso.datetime(),
+        }),
+      ),
+      community: communitySchema.default(() => structuredClone(initialCommunity)),
+    })
+    .parse(input);
+}
+export function addEvidence(workspace: Workspace, entry: Entry, input: unknown): Workspace {
+  const data = z
+    .object({
+      position: z.string().trim().min(1).max(10000),
+      source: z.string().trim().min(1).max(10000),
+    })
+    .parse(input);
+  if (entry.status !== "disputed" || !canDiscuss(workspace.community, workspace.role, entry))
+    throw new Error("Editorial access is required to add evidence.");
+  return {
+    ...workspace,
+    evidence: [
+      ...workspace.evidence,
+      {
+        ...data,
+        id: crypto.randomUUID(),
+        entryId: entry.id,
+        actor: actors[workspace.role],
+        at: new Date().toISOString(),
+      },
+    ],
+  };
+}
 export function propose(workspace: Workspace, input: unknown, original?: Entry): Workspace {
-  if (workspace.role !== "contributor")
+  if (
+    workspace.role !== "contributor" ||
+    !hasPermission(workspace.community, workspace.role, "contributor")
+  )
     throw new Error("Switch to the contributor role to submit a proposal.");
   const data = proposalSchema.parse(input);
   const at = new Date().toISOString();
@@ -180,6 +280,7 @@ export function revise(workspace: Workspace, id: string, input: unknown): Worksp
   if (
     !entry ||
     workspace.role !== "contributor" ||
+    !hasPermission(workspace.community, workspace.role, "contributor") ||
     entry.contributor !== actors.contributor ||
     !["draft", "changes_requested"].includes(entry.status)
   )

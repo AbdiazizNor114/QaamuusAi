@@ -60,7 +60,10 @@ test("dispute resolution records positions and preserves history", async ({ page
   await page.getByLabel("Decision rationale").fill("Variant retained for independent review");
   await page.getByRole("button", { name: "Resolve and return to review" }).click();
   await expect(
-    page.getByText("Variant retained for independent review", { exact: true }),
+    page
+      .locator(".record-band")
+      .filter({ has: page.getByRole("heading", { name: "Resolution history" }) })
+      .getByText("Variant retained for independent review", { exact: true }),
   ).toBeVisible();
 });
 test("all routes fit narrow and desktop viewports and export approved data", async ({ page }) => {

@@ -1,3 +1,4 @@
+import { sameOrigin } from "@/lib/origin";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { statuses } from "@qaamuusai/schemas";
@@ -8,7 +9,7 @@ const schema = z.object({
   reason: z.string().trim().min(1).max(10000),
 });
 export async function POST(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!sameOrigin(request))
     return NextResponse.json({ error: "Origin rejected." }, { status: 403 });
   const db = await supabase();
   if (!db) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });

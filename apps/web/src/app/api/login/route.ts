@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
+import { requestOrigin, sameOrigin } from "@/lib/origin";
 export async function POST(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!sameOrigin(request))
     return NextResponse.json({ error: "Origin rejected." }, { status: 403 });
   const db = await supabase();
   if (!db)
@@ -14,7 +15,10 @@ export async function POST(request: Request) {
   if (!input.success) return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
   const { error } = await db.auth.signInWithOtp({
     email: input.data.email,
-    options: { shouldCreateUser: false, emailRedirectTo: new URL("/auth", request.url).href },
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: new URL("/auth", requestOrigin(request)).href,
+    },
   });
   return error
     ? NextResponse.json({ error: "Sign-in could not be requested." }, { status: 400 })

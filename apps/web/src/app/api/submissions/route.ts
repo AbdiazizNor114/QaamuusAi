@@ -1,3 +1,4 @@
+import { sameOrigin } from "@/lib/origin";
 import { NextResponse } from "next/server";
 import { proposalSchema } from "@qaamuusai/schemas";
 import { supabase } from "@/lib/supabase";
@@ -18,7 +19,7 @@ export async function GET() {
     : NextResponse.json(data);
 }
 export async function PATCH(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!sameOrigin(request))
     return NextResponse.json({ error: "Origin rejected." }, { status: 403 });
   const db = await supabase();
   if (!db) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
@@ -36,7 +37,7 @@ export async function PATCH(request: Request) {
     : NextResponse.json({ ok: true });
 }
 export async function POST(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!sameOrigin(request))
     return NextResponse.json({ error: "Origin rejected." }, { status: 403 });
   const db = await supabase();
   if (!db) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });

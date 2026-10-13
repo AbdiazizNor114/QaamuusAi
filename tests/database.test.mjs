@@ -25,7 +25,11 @@ test("migrations, RLS and editorial transactions", async (t) => {
       grant execute on function auth.uid() to anon,authenticated;
       alter default privileges in schema public grant all on tables to anon,authenticated;
     `);
-    for (const migration of ["202610120001_foundation.sql", "202610120002_revision_history.sql"]) {
+    for (const migration of [
+      "202610120001_foundation.sql",
+      "202610120002_revision_history.sql",
+      "202610130001_community_workflows.sql",
+    ]) {
       await db.exec(
         await readFile(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8"),
       );
@@ -182,6 +186,209 @@ test("migrations, RLS and editorial transactions", async (t) => {
         (await db.query("select status from dataset_entry_revisions where id=$1", [pending]))
           .rows[0].status,
         "approved",
+      );
+    });
+    await t.test(
+      "scholar decisions require independent editorial authority and audit role grants",
+      async () => {
+        await identity(author);
+        const application = (
+          await db.query(
+            "select apply_scholar('Synthetic grammar expertise','Synthetic application') as id",
+          )
+        ).rows[0].id;
+        await assert.rejects(db.query("select apply_scholar('Duplicate','Duplicate')"));
+        await assert.rejects(
+          db.query("select decide_scholar($1,true,'Self approval')", [application]),
+        );
+        await identity(admin);
+        await assert.rejects(
+          db.query("select decide_scholar($1,true,'Operational override')", [application]),
+        );
+        await identity(unrelated);
+        assert.equal((await db.query("select * from scholar_applications")).rows.length, 0);
+        await identity(editor);
+        await db.query("select decide_scholar($1,true,'Independent credentials checked')", [
+          application,
+        ]);
+        assert.equal(
+          (await db.query("select status from scholar_applications where id=$1", [application]))
+            .rows[0].status,
+          "accepted",
+        );
+        assert.ok(
+          (await db.query("select * from audit_logs where action='role_granted'")).rows.length,
+        );
+        await assert.rejects(
+          db.query("select decide_scholar($1,true,'Already decided')", [application]),
+        );
+        await identity(author);
+        assert.equal(
+          (await db.query("select has_role('reviewer') as allowed")).rows[0].allowed,
+          true,
+        );
+      },
+    );
+    await t.test(
+      "role administration denies self-elevation and separates operational authority",
+      async () => {
+        await identity(admin);
+        await assert.rejects(
+          db.query("select change_member_role($1,'editor',false,'Override')", [unrelated]),
+        );
+        await assert.rejects(
+          db.query("select change_member_role($1,'technical_admin',false,'Self grant')", [admin]),
+        );
+        await identity(editor);
+        await assert.rejects(
+          db.query("select change_member_role($1,'technical_admin',false,'Editorial override')", [
+            unrelated,
+          ]),
+        );
+        await assert.rejects(
+          db.query("select change_member_role($1,'editor',false,'Self grant')", [editor]),
+        );
+        await db.query("select change_member_role($1,'reviewer',false,'Independent appointment')", [
+          unrelated,
+        ]);
+        await db.query("select change_member_role($1,'reviewer',true,'Appointment ended')", [
+          unrelated,
+        ]);
+        await assert.rejects(
+          db.query("select change_member_role($1,'editor',true,'Remove last editor')", [editor]),
+        );
+        await identity(unrelated);
+        assert.equal((await db.query("select * from community_members()")).rows.length, 0);
+      },
+    );
+    await t.test(
+      "articles are private, independently reviewed, immutable and corrected separately",
+      async () => {
+        const article = {
+          title: "Synthetic article",
+          summary: "Authored summary",
+          body: "Synthetic text",
+          source: "Authored fixture",
+          license: "CC-BY-4.0",
+        };
+        await identity(author);
+        const id = (await db.query("select save_article_proposal($1) as id", [article])).rows[0].id;
+        await identity(unrelated);
+        assert.equal((await db.query("select * from article_revisions")).rows.length, 0);
+        await assert.rejects(db.query("select save_article_proposal($1,$2)", [article, id]));
+        await identity(author);
+        await db.query("select transition_article($1,'submitted','Ready')", [id]);
+        await assert.rejects(
+          db.query("select transition_article($1,'under_review','Self review')", [id]),
+        );
+        await identity(admin);
+        await assert.rejects(
+          db.query("select transition_article($1,'under_review','Operational override')", [id]),
+        );
+        await identity(reviewer);
+        await db.query("select transition_article($1,'under_review','Independent review')", [id]);
+        await db.query("select transition_article($1,'approved','Sources verified')", [id]);
+        await assert.rejects(
+          db.query("select transition_article($1,'published','Reviewer publication')", [id]),
+        );
+        await identity(editor);
+        const published = (
+          await db.query(
+            "select transition_article($1,'published','Editorial publication') as id",
+            [id],
+          )
+        ).rows[0].id;
+        await identity(null, "anon");
+        assert.equal((await db.query("select * from articles")).rows.length, 1);
+        assert.equal((await db.query("select * from article_revisions")).rows.length, 0);
+        await assert.rejects(db.query("select save_article_proposal($1)", [article]));
+        await identity(author);
+        await assert.rejects(db.query("select save_article_proposal($1,$2)", [article, id]));
+        const corrected = (
+          await db.query("select save_article_proposal($1,null,$2) as id", [
+            { ...article, body: "Corrected synthetic text" },
+            published,
+          ])
+        ).rows[0].id;
+        assert.equal(
+          (await db.query("select version from article_revisions where id=$1", [corrected])).rows[0]
+            .version,
+          2,
+        );
+        assert.equal(
+          (await db.query("select body from articles where id=$1", [published])).rows[0].body,
+          "Synthetic text",
+        );
+        assert.ok(
+          (await db.query("select * from audit_logs where record_id=$1", [id])).rows.length >= 4,
+        );
+      },
+    );
+    await t.test(
+      "article disputes require editor resolution and pending licenses cannot publish",
+      async () => {
+        await identity(author);
+        const article = {
+          title: "Pending rights",
+          summary: "Summary",
+          body: "Test",
+          source: "Authored",
+          license: "Permission pending",
+        };
+        const id = (await db.query("select save_article_proposal($1) as id", [article])).rows[0].id;
+        await db.query("select transition_article($1,'submitted','Submit')", [id]);
+        await identity(reviewer);
+        await db.query("select transition_article($1,'under_review','Review')", [id]);
+        await db.query("select transition_article($1,'disputed','Distinct position')", [id]);
+        await assert.rejects(
+          db.query("select transition_article($1,'under_review','Reviewer resolves')", [id]),
+        );
+        await identity(editor);
+        await db.query("select transition_article($1,'under_review','Editor resolution')", [id]);
+        await db.query("select transition_article($1,'approved','Meaning verified')", [id]);
+        await assert.rejects(
+          db.query("select transition_article($1,'published','Rights missing')", [id]),
+        );
+      },
+    );
+    await t.test("releases freeze licensed published records with unique versions", async () => {
+      await identity(editor);
+      const ids = (await db.query("select id from dataset_entries order by version")).rows.map(
+        (row) => row.id,
+      );
+      const release = (
+        await db.query(
+          "select publish_dataset_release('0.1.0',$1,'Reviewed synthetic release') as id",
+          [ids],
+        )
+      ).rows[0].id;
+      await assert.rejects(
+        db.query("select publish_dataset_release('0.1.0',$1,'Duplicate version')", [ids]),
+      );
+      await assert.rejects(
+        db.query("select publish_dataset_release('0.2.0',$1,'Duplicate entries')", [
+          [ids[0], ids[0]],
+        ]),
+      );
+      await assert.rejects(
+        db.query("select publish_dataset_release('bad',$1,'Bad version')", [ids]),
+      );
+      await identity(author);
+      await assert.rejects(
+        db.query("select publish_dataset_release('0.2.0',$1,'Contributor publication')", [ids]),
+      );
+      await identity(null, "anon");
+      const frozen = (
+        await db.query("select snapshot,license_manifest from dataset_releases where id=$1", [
+          release,
+        ])
+      ).rows[0];
+      assert.equal(frozen.snapshot.length, 2);
+      assert.equal(frozen.snapshot[0].status, "published");
+      assert.equal(frozen.license_manifest.length, 2);
+      assert.equal(
+        (await db.query("update dataset_releases set notes='Tampered' returning id")).rows.length,
+        0,
       );
     });
   } finally {

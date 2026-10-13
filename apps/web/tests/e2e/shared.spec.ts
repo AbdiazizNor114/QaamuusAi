@@ -61,31 +61,76 @@ test("live public datasets and protected routes do not use demo identities", asy
     ).toBe(backend.configured ? 401 : 503);
   }
 });
-test("email and verification-code forms handle success and expired codes", async ({ page }) => {
-  await page.route("**/api/workspace", (route) =>
-    route.fulfill({ json: { ...emptySharedState, configured: true } }),
-  );
+test("email/password sign-in handles invalid credentials and a verified session", async ({
+  page,
+}) => {
+  const state: SharedState = { ...emptySharedState, configured: true };
+  let accepted = false;
+  await page.route("**/api/workspace", (route) => route.fulfill({ json: state }));
   await page.route("**/api/login", (route) => {
-    expect(route.request().postDataJSON()).toEqual({ email: "synthetic@example.com" });
+    expect(route.request().postDataJSON()).toEqual({
+      email: "synthetic@example.com",
+      password: "Synthetic-test-password",
+    });
+    if (!accepted)
+      return route.fulfill({
+        status: 401,
+        json: { error: "Email or password is incorrect, or the account is not confirmed." },
+      });
+    state.user = { id: author, email: "synthetic@example.com" };
+    state.profile = { display_name: "Synthetic user" };
     return route.fulfill({ json: { ok: true } });
   });
-  await page.route("**/api/login/verify", (route) =>
-    route.fulfill({
-      status: 400,
-      json: { error: "Code is invalid or expired. Request a new sign-in email." },
-    }),
-  );
   await page.goto("/shared/login");
   await page.getByLabel("Email", { exact: true }).fill("synthetic@example.com");
-  await page.getByRole("button", { name: "Send sign-in link" }).click();
-  await expect(page.getByText("Check your inbox for a sign-in link.")).toBeVisible();
-  const codeForm = page.locator("form").filter({ has: page.getByLabel("Verification code") });
-  await codeForm.getByLabel("Email", { exact: true }).fill("synthetic@example.com");
-  await codeForm.getByLabel("Verification code").fill("123456");
-  await codeForm.getByRole("button", { name: "Verify code" }).click();
+  await page.getByLabel("Password", { exact: true }).fill("Synthetic-test-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(
-    page.getByText("Code is invalid or expired. Request a new sign-in email."),
+    page.getByText("Email or password is incorrect, or the account is not confirmed."),
   ).toBeVisible();
+  accepted = true;
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/shared\/dashboard$/);
+  await expect(page.getByRole("button", { name: "New submission" })).toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      Object.values(localStorage).some((value) =>
+        String(value).includes("Synthetic-test-password"),
+      ),
+    ),
+  ).toBe(false);
+});
+test("signed-in password setup validates confirmation and clears successful input", async ({
+  page,
+}) => {
+  await page.route("**/api/workspace", (route) =>
+    route.fulfill({
+      json: {
+        ...emptySharedState,
+        configured: true,
+        user: { id: author, email: "synthetic@example.com" },
+        profile: { display_name: "Synthetic user" },
+      },
+    }),
+  );
+  await page.route("**/api/password", (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      password: "Synthetic-test-password",
+      confirmation: "Synthetic-test-password",
+    });
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/shared/dashboard/profile");
+  await page.getByLabel("New password").fill("Synthetic-test-password");
+  await page.getByLabel("Confirm password").fill("Different-test-password");
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page.getByText("Passwords do not match.")).toBeVisible();
+  await page.getByLabel("Confirm password").fill("Synthetic-test-password");
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(
+    page.getByText("Password saved. You can now sign in with your email and password."),
+  ).toBeVisible();
+  await expect(page.getByLabel("New password")).toHaveValue("");
 });
 test("shared onboarding, draft and discussion use server data after reload", async ({ page }) => {
   const state: SharedState = {

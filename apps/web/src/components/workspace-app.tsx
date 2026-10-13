@@ -1,7 +1,7 @@
 "use client";
 
 import NextLink from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowDownToLine,
@@ -1472,6 +1472,7 @@ function Field({
 }
 function Login({ onNotice }: { onNotice: (message: string) => void }) {
   const { tr } = useLocale();
+  const router = useRouter();
   return (
     <div className="login">
       <ShieldCheck size={35} />
@@ -1480,15 +1481,23 @@ function Login({ onNotice }: { onNotice: (message: string) => void }) {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          const email = new FormData(e.currentTarget).get("email");
+          const form = e.currentTarget;
+          const fields = new FormData(form);
           try {
             const response = await fetch("/api/login", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email }),
+              body: JSON.stringify({
+                email: fields.get("email"),
+                password: fields.get("password"),
+              }),
             });
             const data = await response.json();
-            onNotice(response.ok ? "Check your inbox for a sign-in link." : data.error);
+            if (response.ok) {
+              form.reset();
+              router.push("/dashboard");
+              router.refresh();
+            } else onNotice(data.error);
           } catch {
             onNotice("Could not request sign-in. Please try again.");
           }
@@ -1498,8 +1507,18 @@ function Login({ onNotice }: { onNotice: (message: string) => void }) {
           {tr("Email address")}
           <input type="email" name="email" required placeholder={tr("you@example.com")} />
         </label>
+        <label>
+          {tr("Password")}
+          <input
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            maxLength={128}
+            required
+          />
+        </label>
         <button className="button primary">
-          {tr("Send sign-in link")}
+          {tr("Sign in")}
           <ArrowRight size={17} />
         </button>
       </form>

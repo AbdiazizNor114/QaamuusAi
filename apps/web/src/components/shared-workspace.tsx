@@ -27,6 +27,7 @@ import {
 import { translate, LocaleContext } from "@/lib/locale";
 import { readableError } from "@/lib/errors";
 import { SharedCommunityPanel } from "./shared-community-panel";
+import { PasswordForm } from "./password-form";
 import { emptySharedCommunity, sharedCommunitySchema } from "@/lib/shared-community";
 
 async function api(path: string, body?: unknown, method = "POST") {
@@ -68,7 +69,6 @@ export function SharedWorkspace({ page }: { page: string }) {
   const [editing, setEditing] = useState<SharedRecord | null>(null);
   const [correction, setCorrection] = useState(false);
   const [form, setForm] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
   const tr = (text: string) => translate(text, language);
   const load = useCallback(async () => {
     setLoading(true);
@@ -296,38 +296,14 @@ export function SharedWorkspace({ page }: { page: string }) {
                     className="editor-form"
                     onSubmit={async (event) => {
                       event.preventDefault();
+                      const form = event.currentTarget;
                       setBusy(true);
                       try {
                         await api("/api/login", {
-                          email: new FormData(event.currentTarget).get("email"),
+                          email: new FormData(form).get("email"),
+                          password: new FormData(form).get("password"),
                         });
-                        setEmailSent(true);
-                        setNotice("Check your inbox for a sign-in link.");
-                      } catch (error) {
-                        setNotice(readableError(error));
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    <label>
-                      {tr("Email")}
-                      <input name="email" type="email" autoComplete="email" required />
-                    </label>
-                    <button className="primary" disabled={busy || !state.configured}>
-                      {tr("Send sign-in link")}
-                    </button>
-                  </form>
-                )}
-                {emailSent && (
-                  <form
-                    className="editor-form"
-                    onSubmit={async (event) => {
-                      event.preventDefault();
-                      setBusy(true);
-                      try {
-                        const body = Object.fromEntries(new FormData(event.currentTarget));
-                        await api("/api/login/verify", body);
+                        form.reset();
                         await load();
                         router.replace(
                           pathname.startsWith("/shared") ? "/shared/dashboard" : "/dashboard",
@@ -345,17 +321,17 @@ export function SharedWorkspace({ page }: { page: string }) {
                       <input name="email" type="email" autoComplete="email" required />
                     </label>
                     <label>
-                      {tr("Verification code")}
+                      {tr("Password")}
                       <input
-                        name="token"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        pattern="[0-9]{6,10}"
+                        name="password"
+                        type="password"
+                        autoComplete="current-password"
+                        maxLength={128}
                         required
                       />
                     </label>
-                    <button className="primary" disabled={busy}>
-                      {tr("Verify code")}
+                    <button className="primary" disabled={busy || !state.configured}>
+                      {tr("Sign in")}
                     </button>
                   </form>
                 )}
@@ -367,34 +343,39 @@ export function SharedWorkspace({ page }: { page: string }) {
                 <Link href="/login">{tr("Sign in to open your workspace.")}</Link>
               </p>
             ) : page === "dashboard/profile" || (!isPublic && !state.profile) ? (
-              <form
-                className="editor-form"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  await mutate("/api/profile", {
-                    display_name: new FormData(event.currentTarget).get("display_name"),
-                  });
-                }}
-              >
-                <label>
-                  {tr("Display name")}
-                  <input
-                    name="display_name"
-                    defaultValue={state.profile?.display_name ?? ""}
-                    maxLength={120}
-                    autoComplete="nickname"
-                    required
-                  />
-                </label>
-                <button className="primary" disabled={busy}>
-                  {tr("Save profile")}
-                </button>
-                <div className="permission-list">
-                  {state.roles.map((role) => (
-                    <span key={role}>{tr(role.replaceAll("_", " "))}</span>
-                  ))}
-                </div>
-              </form>
+              <>
+                <form
+                  className="editor-form"
+                  onSubmit={async (event) => {
+                    event.preventDefault();
+                    await mutate("/api/profile", {
+                      display_name: new FormData(event.currentTarget).get("display_name"),
+                    });
+                  }}
+                >
+                  <label>
+                    {tr("Display name")}
+                    <input
+                      name="display_name"
+                      defaultValue={state.profile?.display_name ?? ""}
+                      maxLength={120}
+                      autoComplete="nickname"
+                      required
+                    />
+                  </label>
+                  <button className="primary" disabled={busy}>
+                    {tr("Save profile")}
+                  </button>
+                  <div className="permission-list">
+                    {state.roles.map((role) => (
+                      <span key={role}>{tr(role.replaceAll("_", " "))}</span>
+                    ))}
+                  </div>
+                </form>
+                {page === "dashboard/profile" && (
+                  <PasswordForm email={state.user?.email} onNotice={setNotice} />
+                )}
+              </>
             ) : ![
                 "datasets",
                 "dashboard",

@@ -17,6 +17,18 @@ export const auditTitles: Record<string, string> = {
 };
 export const LocaleContext = createContext<Language>("en");
 export const somali: Record<string, string> = {
+  Password: "Furaha sirta ah",
+  "Set password": "Deji furaha sirta ah",
+  "New password": "Furaha sirta ah ee cusub",
+  "Confirm password": "Xaqiiji furaha sirta ah",
+  "Save password": "Kaydi furaha sirta ah",
+  "Passwords do not match.": "Furayaasha sirta ahi isku mid ma aha.",
+  "Password saved. You can now sign in with your email and password.":
+    "Furaha sirta ah waa la kaydiyey. Hadda ku soo gal iimaylkaaga iyo furaha sirta ah.",
+  "Email or password is incorrect, or the account is not confirmed.":
+    "Iimaylka ama furaha sirta ahi waa khalad, ama akoonka lama xaqiijin.",
+  "Too many sign-in attempts. Please wait before trying again.":
+    "Isku-dayada soo-gelidda ayaa badan. Sug ka hor intaadan mar kale isku dayin.",
   "Scholar application": "Codsiga aqoonyahanka",
   "License manifest": "Liiska ruqsadaha",
   Permission: "Oggolaansho",

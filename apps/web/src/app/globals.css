@@ -164,6 +164,16 @@ button.shared-record {
 .shared-main .record-band p {
   white-space: pre-wrap;
 }
+.shared-main .record-band h2,
+.shared-main .record-band h3 {
+  overflow-wrap: anywhere;
+}
+.shared-shell button.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 .shared-footer {
   padding: 20px 32px;
   border-top: 1px solid var(--line);

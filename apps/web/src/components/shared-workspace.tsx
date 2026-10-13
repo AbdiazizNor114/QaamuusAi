@@ -12,6 +12,10 @@ import {
   ListChecks,
   MessageSquare,
   Search,
+  GraduationCap,
+  NotebookPen,
+  Package,
+  Users,
 } from "lucide-react";
 import { categories, proposalSchema, type Status } from "@qaamuusai/schemas";
 import {
@@ -22,6 +26,8 @@ import {
 } from "@/lib/shared";
 import { translate, LocaleContext } from "@/lib/locale";
 import { readableError } from "@/lib/errors";
+import { SharedCommunityPanel } from "./shared-community-panel";
+import { emptySharedCommunity, sharedCommunitySchema } from "@/lib/shared-community";
 
 async function api(path: string, body?: unknown, method = "POST") {
   const response = await fetch(path, {
@@ -51,6 +57,7 @@ export function SharedWorkspace({ page }: { page: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [state, setState] = useState<SharedState>(emptySharedState);
+  const [community, setCommunity] = useState(emptySharedCommunity);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -66,9 +73,13 @@ export function SharedWorkspace({ page }: { page: string }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setState(sharedStateSchema.parse(await api("/api/workspace")));
+      const workspace = sharedStateSchema.parse(await api("/api/workspace"));
+      const loadedCommunity = sharedCommunitySchema.parse(await api("/api/community"));
+      setState(workspace);
+      setCommunity(loadedCommunity);
     } catch (error) {
       setState(emptySharedState);
+      setCommunity(emptySharedCommunity);
       setSelected(null);
       setNotice(readableError(error));
     } finally {
@@ -121,8 +132,13 @@ export function SharedWorkspace({ page }: { page: string }) {
     { href: "dashboard/submissions", label: "My submissions", Icon: ListChecks },
     { href: "dashboard/reviews", label: "Review queue", Icon: ListChecks },
     { href: "dashboard/disputes", label: "Disputes", Icon: MessageSquare },
+    { href: "dashboard/scholars", label: "Scholar applications", Icon: GraduationCap },
+    { href: "dashboard/articles", label: "Article proposals", Icon: NotebookPen },
+    { href: "articles", label: "Articles", Icon: BookOpen },
+    { href: "dashboard/releases", label: "Dataset releases", Icon: Package },
+    { href: "admin/roles", label: "Role administration", Icon: Users },
   ];
-  const isPublic = page === "datasets";
+  const isPublic = ["datasets", "articles", "dashboard/releases"].includes(page);
   const current = [...state.revisions, ...state.entries].find((row) => row.id === selected);
   const own = current?.author_id === state.user?.id;
   const editable =
@@ -386,7 +402,14 @@ export function SharedWorkspace({ page }: { page: string }) {
                 "dashboard/reviews",
                 "dashboard/disputes",
               ].includes(page) ? (
-              <p>{tr("This shared workflow is not connected yet.")}</p>
+              <SharedCommunityPanel
+                page={page}
+                workspace={state}
+                community={community}
+                busy={busy}
+                mutate={mutate}
+                onNotice={setNotice}
+              />
             ) : (
               <>
                 {!isPublic && (

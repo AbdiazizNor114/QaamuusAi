@@ -17,6 +17,17 @@ export const auditTitles: Record<string, string> = {
 };
 export const LocaleContext = createContext<Language>("en");
 export const somali: Record<string, string> = {
+  "Scholar application": "Codsiga aqoonyahanka",
+  "License manifest": "Liiska ruqsadaha",
+  Permission: "Oggolaansho",
+  "Article proposals": "Soo-jeedimaha maqaalada",
+  "Role administration": "Maamulka doorarka",
+  "Confirm this member permission change": "Xaqiiji beddelkan oggolaanshaha xubinta",
+  "Role administration requires appropriate authority.":
+    "Maamulka doorarku wuxuu u baahan yahay awoodda ku habboon.",
+  "Decline application": "Diid codsiga",
+  "New dataset release": "Sii-deyn xogeed cusub",
+  "No articles yet.": "Weli maqaallo ma jiraan.",
   "Shared workspace": "Goobta wadajirka ah",
   "Workspace navigation": "Hagaha goobta shaqada",
   "Sign out": "Ka bax",

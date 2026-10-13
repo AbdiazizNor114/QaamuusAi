@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { emptySharedState, type SharedState } from "../../src/lib/shared";
+import { emptySharedCommunity } from "../../src/lib/shared-community";
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/community", (route) => route.fulfill({ json: emptySharedCommunity }));
+});
 const author = "11111111-1111-4111-8111-111111111111";
 const reviewer = "22222222-2222-4222-8222-222222222222";
 const revision = "33333333-3333-4333-8333-333333333333";

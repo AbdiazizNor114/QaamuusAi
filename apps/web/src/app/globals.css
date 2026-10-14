@@ -1,4 +1,10 @@
 @import "tailwindcss";
+.shared-shell button.shared-text-button {
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  text-decoration: underline;
+}
 .shared-shell {
   min-height: 100vh;
   display: flex;

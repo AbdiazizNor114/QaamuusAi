@@ -70,6 +70,7 @@ export function SharedWorkspace({ page }: { page: string }) {
   const [editing, setEditing] = useState<SharedRecord | null>(null);
   const [correction, setCorrection] = useState(false);
   const [form, setForm] = useState(false);
+  const [recoverPassword, setRecoverPassword] = useState(false);
   const tr = (text: string) => translate(text, language);
   const load = useCallback(async () => {
     setLoading(true);
@@ -296,7 +297,9 @@ export function SharedWorkspace({ page }: { page: string }) {
                   page === "reset-password"
                     ? "Reset password"
                     : page === "login"
-                      ? "Sign in"
+                      ? recoverPassword
+                        ? "Forgot password?"
+                        : "Sign in"
                       : (nav.find((item) => item.href === page)?.label ?? "Shared workspace"),
                 )}
               </h1>
@@ -324,6 +327,46 @@ export function SharedWorkspace({ page }: { page: string }) {
                   <p>
                     <Link href="/dashboard">{tr("Open workspace")}</Link>
                   </p>
+                ) : recoverPassword ? (
+                  <form
+                    className="editor-form"
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      const form = event.currentTarget;
+                      setBusy(true);
+                      setNotice("");
+                      try {
+                        await api("/api/password/recover", {
+                          email: new FormData(form).get("email"),
+                        });
+                        setNotice("If an account exists, check your email for a reset link.");
+                      } catch (error) {
+                        setNotice(readableError(error));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    <label>
+                      {tr("Email")}
+                      <input name="email" type="email" autoComplete="email" required />
+                    </label>
+                    <div className="shared-actions">
+                      <button className="primary" disabled={busy || !state.configured}>
+                        {tr("Send reset link")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          setRecoverPassword(false);
+                          setNotice("");
+                        }}
+                      >
+                        {tr("Back to sign in")}
+                      </button>
+                    </div>
+                  </form>
                 ) : (
                   <form
                     className="editor-form"
@@ -363,9 +406,22 @@ export function SharedWorkspace({ page }: { page: string }) {
                         required
                       />
                     </label>
-                    <button className="primary" disabled={busy || !state.configured}>
-                      {tr("Sign in")}
-                    </button>
+                    <div className="shared-actions">
+                      <button className="primary" disabled={busy || !state.configured}>
+                        {tr("Sign in")}
+                      </button>
+                      <button
+                        type="button"
+                        className="shared-text-button"
+                        disabled={busy}
+                        onClick={() => {
+                          setRecoverPassword(true);
+                          setNotice("");
+                        }}
+                      >
+                        {tr("Forgot password?")}
+                      </button>
+                    </div>
                   </form>
                 )}
               </>

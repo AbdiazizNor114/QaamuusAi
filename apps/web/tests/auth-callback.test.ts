@@ -43,6 +43,18 @@ it("verified recovery callbacks open the password form", async () => {
   expect(verifyOtp).toHaveBeenCalledWith({ token_hash: "synthetic", type: "recovery" });
   expect(response.headers.get("location")).toBe("http://localhost:3000/reset-password");
 });
+it("PKCE recovery requests return to reset-password and clear the routing marker", async () => {
+  client.mockResolvedValue({
+    auth: { exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }) },
+  });
+  const response = await GET(
+    new Request("http://localhost:3000/auth?code=synthetic", {
+      headers: { cookie: "qaamuusai-recovery=1" },
+    }),
+  );
+  expect(response.headers.get("location")).toBe("http://localhost:3000/reset-password");
+  expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+});
 it("failed email exchange does not establish a signed-in redirect", async () => {
   client.mockResolvedValue({
     auth: { exchangeCodeForSession: vi.fn().mockResolvedValue({ error: { message: "expired" } }) },

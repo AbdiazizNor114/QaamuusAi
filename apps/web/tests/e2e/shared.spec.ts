@@ -132,6 +132,41 @@ test("signed-in password setup validates confirmation and clears successful inpu
   ).toBeVisible();
   await expect(page.getByLabel("New password")).toHaveValue("");
 });
+test("forgot-password link sends a recovery request and explains rate limits", async ({ page }) => {
+  await page.route("**/api/workspace", (route) =>
+    route.fulfill({ json: { ...emptySharedState, configured: true } }),
+  );
+  let limited = true;
+  await page.route("**/api/password/recover", (route) => {
+    expect(route.request().postDataJSON()).toEqual({ email: "synthetic@example.com" });
+    return limited
+      ? route.fulfill({
+          status: 429,
+          json: {
+            error:
+              "Email delivery limit reached. Please wait before requesting another reset link.",
+          },
+        })
+      : route.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/shared/login");
+  await page.getByRole("button", { name: "Forgot password?", exact: true }).click();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Email", { exact: true }).fill("synthetic@example.com");
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(
+    page.getByText(
+      "Email delivery limit reached. Please wait before requesting another reset link.",
+    ),
+  ).toBeVisible();
+  limited = false;
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(
+    page.getByText("If an account exists, check your email for a reset link."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Back to sign in" }).click();
+  await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
+});
 test("localhost recovery fragments are exchanged, removed and open the password form", async ({
   page,
 }) => {

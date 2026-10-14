@@ -8,6 +8,7 @@ const pages = [
   "articles",
   "contribute",
   "login",
+  "reset-password",
   "dashboard",
   "dashboard/submissions",
   "dashboard/reviews",
@@ -28,7 +29,7 @@ export default async function Page({ params }: { params: Promise<{ path?: string
   if (!pages.includes(page)) notFound();
   const configured =
     !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if ((configured || shared) && !demo && page !== "about")
+  if ((configured || shared || page === "reset-password") && !demo && page !== "about")
     return (
       <SharedWorkspace
         page={page === "" ? "datasets" : page === "contribute" ? "dashboard/submissions" : page}

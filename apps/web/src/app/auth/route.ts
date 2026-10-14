@@ -8,13 +8,18 @@ export async function GET(request: Request) {
   const token_hash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
   const db = await supabase();
-  if (token_hash && db && (type === "email" || type === "magiclink" || type === "signup")) {
+  const destination = type === "recovery" ? "/reset-password" : "/dashboard";
+  if (
+    token_hash &&
+    db &&
+    (type === "email" || type === "magiclink" || type === "signup" || type === "recovery")
+  ) {
     const { error } = await db.auth.verifyOtp({ token_hash, type });
-    if (!error) return NextResponse.redirect(new URL("/dashboard", origin));
+    if (!error) return NextResponse.redirect(new URL(destination, origin));
   }
   if (code && db) {
     const { error } = await db.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL("/dashboard", origin));
+    if (!error) return NextResponse.redirect(new URL(destination, origin));
   }
   return NextResponse.redirect(new URL("/login?error=callback", origin));
 }

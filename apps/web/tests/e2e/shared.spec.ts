@@ -132,6 +132,45 @@ test("signed-in password setup validates confirmation and clears successful inpu
   ).toBeVisible();
   await expect(page.getByLabel("New password")).toHaveValue("");
 });
+test("localhost recovery fragments are exchanged, removed and open the password form", async ({
+  page,
+}) => {
+  const state: SharedState = { ...emptySharedState, configured: true };
+  await page.route("**/api/workspace", (route) => route.fulfill({ json: state }));
+  await page.route("**/api/auth/recovery", (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      access_token: "synthetic-access-token",
+      refresh_token: "synthetic-refresh-token",
+    });
+    state.user = { id: author, email: "synthetic@example.com" };
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto(
+    "/shared/datasets#access_token=synthetic-access-token&refresh_token=synthetic-refresh-token&type=recovery",
+  );
+  await expect(page).toHaveURL(/\/reset-password$/);
+  await expect(page.getByLabel("New password")).toBeVisible();
+  await expect(page.getByLabel("Confirm password")).toBeVisible();
+  expect(await page.evaluate(() => window.location.hash)).toBe("");
+  expect(
+    await page.evaluate(() =>
+      Object.values(localStorage).some((value) => String(value).includes("synthetic-access-token")),
+    ),
+  ).toBe(false);
+});
+test("expired recovery links clear fragments without showing an unlocked password form", async ({
+  page,
+}) => {
+  await page.route("**/api/workspace", (route) =>
+    route.fulfill({ json: { ...emptySharedState, configured: true } }),
+  );
+  await page.goto("/shared/datasets#error=access_denied&error_code=otp_expired");
+  await expect(
+    page.getByText("Reset link is invalid or expired. Request a new link."),
+  ).toBeVisible();
+  expect(await page.evaluate(() => location.hash)).toBe("");
+  await expect(page.getByLabel("New password")).toHaveCount(0);
+});
 test("shared onboarding, draft and discussion use server data after reload", async ({ page }) => {
   const state: SharedState = {
     ...emptySharedState,

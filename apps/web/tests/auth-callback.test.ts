@@ -29,10 +29,19 @@ it("accepts only supported email token-hash callback types", async () => {
   verifyOtp.mockClear();
   expect(
     (
-      await GET(new Request("http://localhost:3000/auth?token_hash=synthetic&type=recovery"))
+      await GET(new Request("http://localhost:3000/auth?token_hash=synthetic&type=unsupported"))
     ).headers.get("location"),
   ).toBe("http://localhost:3000/login?error=callback");
   expect(verifyOtp).not.toHaveBeenCalled();
+});
+it("verified recovery callbacks open the password form", async () => {
+  const verifyOtp = vi.fn().mockResolvedValue({ error: null });
+  client.mockResolvedValue({ auth: { verifyOtp } });
+  const response = await GET(
+    new Request("http://localhost:3000/auth?token_hash=synthetic&type=recovery"),
+  );
+  expect(verifyOtp).toHaveBeenCalledWith({ token_hash: "synthetic", type: "recovery" });
+  expect(response.headers.get("location")).toBe("http://localhost:3000/reset-password");
 });
 it("failed email exchange does not establish a signed-in redirect", async () => {
   client.mockResolvedValue({

@@ -4,8 +4,8 @@ Verified locally on Windows with Node 24 and Python 3.11:
 
 - TypeScript checking and ESLint without warnings.
 - Next.js optimized production build.
-- Thirty-three Vitest tests cover workflow rules, shared API origin/identity validation, callback handling, community RPC boundaries, release responses/timestamps and password sign-in/setup validation.
-- Twenty Playwright scenarios retain the ten demo cases and add shared dataset/profile flows, email/password errors/success, signed-in password confirmation, scholar decisions, role controls, article publication/corrections, release links and responsive accessibility. Authenticated browser cases use mocked server responses, not privileged real accounts.
+- Thirty-seven Vitest tests cover workflow rules, shared API validation, community RPC boundaries, release responses/timestamps, password sign-in/setup, recovery callback routing and access-token validation before session establishment.
+- Twenty-two Playwright scenarios retain the ten demo cases and add shared workflows, password sign-in/setup, recovery-fragment exchange/clearing, expired-link rejection and responsive accessibility. Authenticated cases use mocked server responses; no real recovery tokens or passwords were used.
 - Axe WCAG 2 A/AA and 2.1 AA checks on the library and all five new workflow pages. Keyboard dialog dismissal/focus restoration and response security headers are checked. Automated scans supplement manual review and do not establish complete accessibility compliance.
 - Ten embedded PostgreSQL scenarios plus migration setup: the original dataset cases plus scholar decisions/audits, role boundaries, private article review/corrections, article disputes/license gates and frozen releases.
 - Fourteen Python validator tests; the four-record demonstration release validates without errors.

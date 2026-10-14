@@ -17,6 +17,11 @@ export const auditTitles: Record<string, string> = {
 };
 export const LocaleContext = createContext<Language>("en");
 export const somali: Record<string, string> = {
+  "Reset password": "Dib u deji furaha sirta ah",
+  "Open the latest password-reset email link in this browser.":
+    "Biraawsarkan ku fur xidhiidhkii ugu dambeeyey ee iimaylka dib-u-dejinta furaha sirta ah.",
+  "Reset link is invalid or expired. Request a new link.":
+    "Xidhiidhka dib-u-dejintu ma shaqaynayo ama wuu dhacay. Codso xidhiidh cusub.",
   Password: "Furaha sirta ah",
   "Set password": "Deji furaha sirta ah",
   "New password": "Furaha sirta ah ee cusub",

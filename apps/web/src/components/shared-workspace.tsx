@@ -1,7 +1,7 @@
 "use client";
 import NextLink from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowDownToLine,
   RefreshCw,
@@ -58,6 +58,7 @@ export function SharedWorkspace({ page }: { page: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [state, setState] = useState<SharedState>(emptySharedState);
+  const initialized = useRef(false);
   const [community, setCommunity] = useState(emptySharedCommunity);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -87,15 +88,39 @@ export function SharedWorkspace({ page }: { page: string }) {
     }
   }, []);
   useEffect(() => {
-    queueMicrotask(() => {
-      void load();
+    queueMicrotask(async () => {
+      if (initialized.current) return;
+      initialized.current = true;
       try {
         setLanguage(localStorage.getItem("qaamuusAi.language") === "so" ? "so" : "en");
       } catch {}
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      if (hash.has("access_token") || hash.has("refresh_token") || hash.has("error")) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        if (
+          hash.get("type") === "recovery" &&
+          hash.get("access_token") &&
+          hash.get("refresh_token")
+        ) {
+          try {
+            await api("/api/auth/recovery", {
+              access_token: hash.get("access_token"),
+              refresh_token: hash.get("refresh_token"),
+            });
+            await load();
+            router.replace("/reset-password");
+            router.refresh();
+            return;
+          } catch {
+            setNotice("Reset link is invalid or expired. Request a new link.");
+          }
+        } else setNotice("Reset link is invalid or expired. Request a new link.");
+      }
+      await load();
       if (new URLSearchParams(window.location.search).get("error") === "callback")
         setNotice("Sign-in link is invalid or expired. Request a new link in this browser.");
     });
-  }, [load]);
+  }, [load, router]);
   useEffect(() => {
     const refresh = () => {
       void load();
@@ -268,9 +293,11 @@ export function SharedWorkspace({ page }: { page: string }) {
             <div className="shared-title">
               <h1>
                 {tr(
-                  page === "login"
-                    ? "Sign in"
-                    : (nav.find((item) => item.href === page)?.label ?? "Shared workspace"),
+                  page === "reset-password"
+                    ? "Reset password"
+                    : page === "login"
+                      ? "Sign in"
+                      : (nav.find((item) => item.href === page)?.label ?? "Shared workspace"),
                 )}
               </h1>
               <button
@@ -285,6 +312,12 @@ export function SharedWorkspace({ page }: { page: string }) {
             </div>
             {loading ? (
               <p aria-busy="true">{tr("Loading…")}</p>
+            ) : page === "reset-password" ? (
+              state.user ? (
+                <PasswordForm email={state.user.email} onNotice={setNotice} />
+              ) : (
+                <p>{tr("Open the latest password-reset email link in this browser.")}</p>
+              )
             ) : page === "login" ? (
               <>
                 {state.user ? (

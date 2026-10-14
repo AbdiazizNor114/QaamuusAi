@@ -71,6 +71,8 @@ Use an existing authorized Supabase project or a local Supabase instance. Do not
 
 Supabase variables activate the shared interface. Password sign-in uses a server endpoint and SSR cookies. Password updates require a same-origin request, verified current user, matching confirmation and 12–128 characters; Supabase enforces its own additional security requirements. Only the current authenticated user can update their password, never a browser-supplied user ID. Legacy PKCE/token-hash callbacks and email-code verification remain supported for previously issued links. Use the same browser and `127.0.0.1` throughout sign-in. Next Proxy refreshes cookie sessions, protected handlers call `getUser()`, and RLS remains authoritative. Shared screens store only the language preference locally.
 
+Password-recovery links that return to the site root with `type=recovery` and session tokens in the URL fragment are handled on first client load. The fragment is removed immediately; a same-origin endpoint validates the access token with Supabase before establishing SSR cookies, then opens `/reset-password`. Explicit recovery token-hash/PKCE callbacks also route to that form. Invalid/expired fragments show a generic error. Tokens are never put in local storage or application logs. The user enters the new password; the agent does not set credentials. Public email-recovery request/registration forms remain pending.
+
 Before deployment, set `APP_ORIGIN` to the canonical HTTPS application origin and configure exact authentication callback URLs, SMTP, email rate limits and anti-abuse controls. Supabase's default email provider can limit delivery to authorized addresses; no authentication settings or rate limits were weakened.
 
 ## Limitations and next steps

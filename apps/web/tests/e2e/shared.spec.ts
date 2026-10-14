@@ -24,6 +24,15 @@ const draft = {
   created_at: "2026-10-13T00:00:00Z",
   updated_at: "2026-10-13T00:00:00Z",
 };
+test("running auth callback safely handles native Next.js requests", async ({ request }) => {
+  const response = await request.get("/auth", {
+    maxRedirects: 0,
+    headers: { cookie: "qaamuusai-recovery=1" },
+  });
+  expect(response.status()).toBe(307);
+  expect(response.headers()["location"]).toBe("http://127.0.0.1:3000/login?error=callback");
+  expect(response.headers()["set-cookie"]).toContain("Max-Age=0");
+});
 test("live public datasets and protected routes do not use demo identities", async ({
   page,
   request,

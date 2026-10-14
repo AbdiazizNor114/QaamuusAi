@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   const db = await supabase();
   const recovery =
     type === "recovery" ||
-    new NextRequest(request).cookies.get("qaamuusai-recovery")?.value === "1";
+    new NextRequest(request.url, { headers: request.headers }).cookies.get("qaamuusai-recovery")
+      ?.value === "1";
   const destination = recovery ? "/reset-password" : "/dashboard";
   function redirect(path: string) {
     const response = NextResponse.redirect(new URL(path, origin));

@@ -7,7 +7,6 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const token_hash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
-  const db = await supabase();
   const recovery =
     type === "recovery" ||
     new NextRequest(request.url, { headers: request.headers }).cookies.get("qaamuusai-recovery")
@@ -15,20 +14,27 @@ export async function GET(request: Request) {
   const destination = recovery ? "/reset-password" : "/dashboard";
   function redirect(path: string) {
     const response = NextResponse.redirect(new URL(path, origin));
+    response.headers.set("Cache-Control", "private, no-store");
     response.cookies.set("qaamuusai-recovery", "", { path: "/", maxAge: 0 });
     return response;
   }
-  if (
-    token_hash &&
-    db &&
-    (type === "email" || type === "magiclink" || type === "signup" || type === "recovery")
-  ) {
-    const { error } = await db.auth.verifyOtp({ token_hash, type });
-    if (!error) return redirect(destination);
-  }
-  if (code && db) {
-    const { error } = await db.auth.exchangeCodeForSession(code);
-    if (!error) return redirect(destination);
+  try {
+    const db = await supabase();
+    if (
+      token_hash &&
+      db &&
+      (type === "email" || type === "magiclink" || type === "signup" || type === "recovery")
+    ) {
+      const { error } = await db.auth.verifyOtp({ token_hash, type });
+      if (!error) return redirect(destination);
+    }
+    if (code && db) {
+      const { data, error } = await db.auth.exchangeCodeForSession(code);
+      if (!error)
+        return redirect(data && "redirectType" in data && data.redirectType === "recovery" ? "/reset-password" : destination);
+    }
+  } catch {
+    return redirect("/login?error=callback");
   }
   return redirect("/login?error=callback");
 }

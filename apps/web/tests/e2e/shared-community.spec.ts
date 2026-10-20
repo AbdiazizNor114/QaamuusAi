@@ -24,6 +24,34 @@ const entry = {
   created_at: timestamp,
   updated_at: timestamp,
 };
+test("article action badge and latest feedback remain visible during editing", async ({ page }) => {
+  const workspace = { ...emptySharedState, configured: true, user: { id: author },
+    profile: { display_name: "Contributor" } };
+  const community: SharedCommunity = { ...emptySharedCommunity,
+    articleRevisions: [{ id: record, author_id: author, title: "Somali grammar",
+      summary: "Synthetic summary", body: "Synthetic article body", source: "Original source",
+      license: "Permission pending", status: "changes_requested", version: 1, created_at: timestamp }],
+    members: [{ id: reviewer, display_name: "Ali Haji", roles: ["reviewer"] }],
+    decisions: [{ id: record, revision_id: record, reviewer_id: reviewer,
+      decision: "changes_requested", rationale: "Please provide an exact citation.", created_at: timestamp }],
+  };
+  await page.route("**/api/workspace", (route) => route.fulfill({ json: workspace }));
+  await page.route("**/api/community", (route) => route.fulfill({ json: community }));
+  await page.goto("/shared/dashboard/articles");
+  await expect(page.getByRole("link", { name: "Article proposals 1", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Somali grammar/ }).click();
+  await expect(page.getByRole("heading", { name: "Review history" })).toBeVisible();
+  await expect(page.getByText("Publication blocked: permission pending.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Edit article", exact: true }).click();
+  const feedback = page.getByRole("region", { name: "Requested changes" });
+  await expect(feedback.getByText("Please provide an exact citation.")).toBeVisible();
+  await expect(feedback.getByText(/Ali Haji/)).toBeVisible();
+  await page.getByLabel("Source / provenance", { exact: true }).fill("Corrected source");
+  await expect(feedback).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/article-feedback-mobile.png", fullPage: true });
+});
 test("shared scholar application persists and independent editor records acceptance", async ({
   page,
 }) => {
@@ -199,9 +227,10 @@ test("shared articles draft, independently review, publish and preserve correcti
     workspace.roles = role ? [role as "reviewer" | "editor"] : [];
     await page.reload();
     await page.getByRole("button", { name: /Synthetic article/ }).click();
-    await page.getByRole("combobox", { name: "Decision", exact: true }).selectOption(decision);
+    if (decision !== "submitted")
+      await page.getByRole("combobox", { name: "Decision", exact: true }).selectOption(decision);
     await page.getByLabel("Decision rationale").fill("Independent synthetic rationale");
-    await page.getByRole("button", { name: "Record decision" }).click();
+    await page.getByRole("button", { name: decision === "submitted" ? "Submit for review" : "Record decision", exact: true }).click();
   }
   workspace.user = { id: author };
   workspace.roles = [];

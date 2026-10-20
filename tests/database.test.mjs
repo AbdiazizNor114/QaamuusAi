@@ -29,6 +29,8 @@ test("migrations, RLS and editorial transactions", async (t) => {
       "202610120001_foundation.sql",
       "202610120002_revision_history.sql",
       "202610130001_community_workflows.sql",
+      "202610140001_reviewer_assignment.sql",
+      "202610170001_terminology_claims.sql",
     ]) {
       await db.exec(
         await readFile(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8"),
@@ -100,6 +102,21 @@ test("migrations, RLS and editorial transactions", async (t) => {
       );
       assert.equal((await db.query("select * from dataset_entry_revisions")).rows.length, 0);
     });
+    await t.test("editor assigns only independent qualified reviewers with an audit", async () => {
+      await identity(admin);
+      await assert.rejects(db.query("select assign_dataset_reviewer($1,$2,'Admin override')", [revision, reviewer]));
+      await identity(editor);
+      for (const target of [author, unrelated, null])
+        await assert.rejects(db.query("select assign_dataset_reviewer($1,$2,'Assignment')", [revision, target]));
+      await assert.rejects(db.query("select assign_dataset_reviewer($1,$2,' ')", [revision, reviewer]));
+      await db.query("select assign_dataset_reviewer($1,$2,'Independent grammar review')", [revision, reviewer]);
+      await assert.rejects(db.query("select assign_dataset_reviewer($1,$2,'Duplicate')", [revision, reviewer]));
+      assert.equal((await db.query("select assigned_reviewer_id from dataset_entry_revisions where id=$1", [revision])).rows[0].assigned_reviewer_id, reviewer);
+      await db.exec("reset role");
+      assert.equal((await db.query("select * from audit_logs where action='reviewer_assigned' and record_id=$1", [revision])).rows.length, 1);
+      await identity(null, "anon");
+      await assert.rejects(db.query("select assign_dataset_reviewer($1,$2,'Anonymous')", [revision, reviewer]));
+    });
     await t.test(
       "reviewer claims queue, editor publishes and public sees only accepted data",
       async () => {
@@ -108,6 +125,9 @@ test("migrations, RLS and editorial transactions", async (t) => {
         await db.query("select review_revision($1,'under_review','Independent review begins')", [
           revision,
         ]);
+        await identity(editor);
+        await assert.rejects(db.query("select assign_dataset_reviewer($1,$2,'Late reassignment')", [revision, editor]));
+        await identity(reviewer);
         await assert.rejects(db.query("select review_revision($1,'approved','')", [revision]));
         await db.query("select review_revision($1,'approved','Synthetic evidence reviewed')", [
           revision,
@@ -390,6 +410,33 @@ test("migrations, RLS and editorial transactions", async (t) => {
         (await db.query("update dataset_releases set notes='Tampered' returning id")).rows.length,
         0,
       );
+    });
+    await t.test("term claims enforce scholar roles, exclusive ownership, stale-release safety and audits", async () => {
+      await db.exec("reset role");
+      await db.query("insert into user_roles(user_id,role) values($1,'reviewer'),($2,'editor') on conflict do nothing", [reviewer,editor]);
+      await identity(null, "anon");
+      await assert.rejects(db.query("select * from list_terminology_claims()"));
+      await identity(unrelated);
+      await assert.rejects(db.query("select claim_terminology_term('tech-navigation-home')"));
+      await identity(reviewer);
+      await assert.rejects(db.query("select claim_terminology_term('unknown-seed')"));
+      const claim = (await db.query("select claim_terminology_term('tech-navigation-home') as id")).rows[0].id;
+      await assert.rejects(db.query("insert into terminology_claims(seed_id,owner_id) values('tech-navigation-dashboard',$1)", [reviewer]));
+      await identity(editor);
+      await assert.rejects(db.query("select claim_terminology_term('tech-navigation-home')"));
+      await assert.rejects(db.query("select release_terminology_claim('tech-navigation-home',$1)", [claim]));
+      const listed = (await db.query("select * from list_terminology_claims()")).rows;
+      assert.equal(listed.length,1); assert.equal(listed[0].owner_id,reviewer);
+      assert.ok(listed[0].display_name); assert.equal('email' in listed[0],false);
+      await identity(reviewer);
+      await db.query("select release_terminology_claim('tech-navigation-home',$1)", [claim]);
+      const renewed = (await db.query("select claim_terminology_term('tech-navigation-home') as id")).rows[0].id;
+      assert.notEqual(renewed,claim);
+      await assert.rejects(db.query("select release_terminology_claim('tech-navigation-home',$1)", [claim]));
+      await db.query("select release_terminology_claim('tech-navigation-home',$1)", [renewed]);
+      await db.exec("reset role");
+      assert.equal((await db.query("select count(*)::int as count from audit_logs where action in ('terminology_claimed','terminology_released')")).rows[0].count,4);
+      assert.equal((await db.query("select count(*)::int as count from terminology_seed_catalog")).rows[0].count,1000);
     });
   } finally {
     await db.close();

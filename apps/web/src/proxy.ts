@@ -1,6 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPublicApi, publicApiPolicy } from "@/lib/public-api-policy";
 export async function proxy(request: NextRequest) {
+  if (isPublicApi(request.nextUrl.pathname)) {
+    const policy = publicApiPolicy(request);
+    if (policy.response) return new NextResponse(policy.response.body, { status: policy.response.status, headers: policy.response.headers });
+    const publicResponse = NextResponse.next();
+    policy.headers.forEach((value, name) => publicResponse.headers.set(name, value));
+    return publicResponse;
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   let response = NextResponse.next({ request });

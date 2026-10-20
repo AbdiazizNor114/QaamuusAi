@@ -80,6 +80,20 @@ export const sharedCommunitySchema = z.object({
 });
 export type SharedCommunity = z.infer<typeof sharedCommunitySchema>;
 export type SharedArticle = z.infer<typeof sharedArticleSchema>;
+export function articleActionCount(workspace: { user: { id: string } | null; roles: string[] }, community: SharedCommunity) {
+  if (!workspace.user) return 0;
+  const user = workspace.user.id;
+  const editor = workspace.roles.includes("editor");
+  const reviewer = workspace.roles.includes("reviewer");
+  return community.articleRevisions.filter((article) => {
+    if (article.author_id === user) return article.status === "changes_requested";
+    if (editor) return ["submitted", "under_review", "approved", "disputed"].includes(article.status ?? "");
+    return reviewer && (
+      (article.status === "submitted" && (!article.assigned_reviewer_id || article.assigned_reviewer_id === user)) ||
+      (article.status === "under_review" && article.assigned_reviewer_id === user)
+    );
+  }).length;
+}
 export const emptySharedCommunity: SharedCommunity = {
   articles: [],
   articleRevisions: [],

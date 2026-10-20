@@ -89,7 +89,7 @@ export function SharedCommunityPanel({
         {community.applications.map((application) => (
           <section className="record-band" key={application.id}>
             <h2>{name(application.applicant_id)}</h2>
-            <p>{tr(application.status)}</p>
+            <p><span className={`work-status status-${application.status}`}>{tr(application.status)}</span></p>
             <p>{application.expertise}</p>
             <p>{application.rationale}</p>
             {application.decision && <blockquote>{application.decision}</blockquote>}
@@ -312,11 +312,15 @@ export function SharedCommunityPanel({
           ? ["under_review"]
           : current.status === "under_review"
             ? ["approved", "changes_requested", "rejected", "disputed"]
-            : current.status === "approved" && editor
+            : current.status === "approved" && editor && ["CC0-1.0", "CC-BY-4.0"].includes(current.license)
               ? ["published"]
               : current.status === "disputed" && editor
                 ? ["under_review"]
                 : [];
+  const requestedChanges = editing?.status === "changes_requested" && !correction
+    ? community.decisions.filter((item) => item.revision_id === editing.id && item.decision === "changes_requested")
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]
+    : undefined;
   function open(article: SharedArticle | null, correct = false) {
     setEditing(article);
     setCorrection(correct);
@@ -358,6 +362,17 @@ export function SharedCommunityPanel({
           <h2>
             {tr(correction ? "Propose correction" : editing ? "Edit article" : "New article")}
           </h2>
+          {requestedChanges && (
+            <section aria-label={tr("Requested changes")} style={{ overflowWrap: "anywhere" }}>
+              <h3>{tr("Requested changes")}</h3>
+              <blockquote>{requestedChanges.rationale}</blockquote>
+              <small>{tr("Reviewer")}: {name(requestedChanges.reviewer_id)} ·{" "}
+                <time dateTime={requestedChanges.created_at}>
+                  {new Date(requestedChanges.created_at).toLocaleString()}
+                </time>
+              </small>
+            </section>
+          )}
           {["title", "summary", "source"].map((field) => (
             <label key={field}>
               {tr(
@@ -409,7 +424,8 @@ export function SharedCommunityPanel({
                 <strong>{article.title}</strong>
                 <span>{article.summary}</span>
                 <small>
-                  {tr(article.status ?? "published")} · v{article.version}
+                  <span className={`work-status status-${article.status ?? "published"}`}>{tr((article.status ?? "published").replaceAll("_", " "))}</span>
+                  <span>v{article.version}</span>
                 </small>
               </button>
             ))}
@@ -428,6 +444,10 @@ export function SharedCommunityPanel({
                 </button>
               </div>
               <p>{current.summary}</p>
+              <p><strong>{tr("Current status")}: {tr((current.status ?? "published").replaceAll("_", " "))}</strong></p>
+              {!publicArticles && current.license === "Permission pending" && (
+                <p role="note"><strong>{tr("Publication blocked: permission pending.")}</strong></p>
+              )}
               <div className="article-body">{current.body}</div>
               <p>
                 {tr("Source")}: {current.source}
@@ -453,7 +473,7 @@ export function SharedCommunityPanel({
                     }))
                   }
                 >
-                  <label>
+                  {editable ? <input type="hidden" name="next_status" value="submitted" /> : <label>
                     {tr("Decision")}
                     <select name="next_status">
                       {decisions.map((status) => (
@@ -462,13 +482,14 @@ export function SharedCommunityPanel({
                         </option>
                       ))}
                     </select>
-                  </label>
+                  </label>}
                   {reason}
                   <button className="primary" disabled={busy}>
-                    {tr("Record decision")}
+                    {tr(editable ? current.status === "changes_requested" ? "Resubmit for review" : "Submit for review" : "Record decision")}
                   </button>
                 </form>
               )}
+              {community.decisions.some((decision) => decision.revision_id === current.id) && <h3>{tr("Review history")}</h3>}
               {community.decisions
                 .filter((decision) => decision.revision_id === current.id)
                 .map((decision) => (

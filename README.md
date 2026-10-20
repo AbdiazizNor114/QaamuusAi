@@ -11,7 +11,19 @@ pnpm install
 pnpm dev
 ```
 
-Open http://127.0.0.1:3000. With Supabase configured, the main interface loads shared datasets and authenticated profiles, submissions, reviews, comments and disputes. Without configuration it defaults to the synthetic demo. The isolated demo is always available at `/demo/dashboard`; its proposals, decisions and role changes stay in browser local storage. Demo roles never authorize shared operations. Do not put real personal or unpublished contributor data into the demo.
+Open http://127.0.0.1:3000. The public catalog, `/datasets`, `/articles`, `/technology`, `/developers` and `/about` work without sign-in. Published shared records load when Supabase is configured; empty collections are not filled with demo records. Authenticated work starts at `/dashboard`. The isolated demo is always available at `/demo/dashboard`; its proposals, decisions and role changes stay in browser local storage. Demo roles never authorize shared operations. Do not put real personal or unpublished contributor data into the demo.
+
+### Public developer access
+
+`GET /api/v1/entries` is the versioned anonymous API for openly licensed published records. Optional parameters: `q` (term/translation search, max 100 characters; letters, numbers, spaces, apostrophes and hyphens), `category` (vocabulary/translation/grammar), `dialect` (exact match), `page` (1–10000, default 1), `limit` (1–100, default 25). Unknown/repeated parameters return 400; backend outages return 503. Success contains `api_version`, `status`, `data` and `pagination` (page, limit, total, total_pages, has_next). No workspace drafts or internal user identifiers are queried. Pagination is live rather than a frozen snapshot. Developer examples and field descriptions are at `/developers`.
+
+`/api/public` provides a read-only catalog (up to 500 entries, 500 articles and 100 releases). `/api/export?format=json` or `format=jsonl` downloads openly licensed published entries, paginated internally. `/releases` lists frozen JSON/JSONL downloads, licensing manifests and SHA-256 checksums. Public API requests have a local rate-limit backstop and configurable CORS allowlist; production distributed limits and external monitoring still require deployment configuration. See [Public Launch](docs/public-launch.md) for environment settings, health checks and limitations. No SLA is provided.
+
+`/api/technology?format=json` or `format=jsonl` provides 1,000 distinct English technology planning terms. The same starter list is available in My submissions for scholar proposals. Somali values are deliberately null and marked `needs_translation`: this is not an approved bilingual dictionary. Source and permission review must precede publication of translations.
+
+The dedicated `/dashboard/terminology` workspace offers topic/status filters, search, pagination and scoped progress counts. Terminology proposals add definition, example, alternatives and permission evidence. These fields use a versioned `qaamuusai.terminology` JSON envelope in the existing `notes` string, preserving existing save/review/history RPCs without a migration. Notes in public JSON/JSONL retain that envelope when a terminology entry is eventually published; ordinary proposals retain plain notes. Old notes are never automatically converted. Progress is based on the loaded, RLS-visible records (currently up to 500 revisions/500 entries), not an authoritative global total.
+
+Shared term claims require migration `202610170001_terminology_claims.sql` (applied to the hosted project on 17 October 2026 after explicit approval). Reviewers/editors can claim one active slot per starter term; a unique database key prevents competing claims. Only its owner can release a particular claim ID, even after losing the scholar role. Authenticated members with profiles see claimant display names, not emails. Writes are audited, and direct table writes are revoked. Claims refresh on focus/every 30 seconds; conflict responses refresh immediately. Claims are coordination only, not review assignment or approval, and do not block alternative proposals. They do not expire automatically. If the migration is unavailable, claim controls remain unavailable rather than pretending terms are unclaimed.
 
 ```powershell
 pnpm typecheck
@@ -35,6 +47,10 @@ python -m venv .venv
 - Dashboard, submissions, review queue, disputes, operational administration, project articles, about, contribution and sign-in pages.
 - Profiles, scholar applications, independent application decisions and audited grants/revocations with combined roles.
 - Reviewer assignments, persistent discussions, evidence and editor resolution histories.
+- Shared dispute evidence with source citations, verified authors and read-only evidence after resolution.
+- Authorized shared submission review history with decision rationale, reviewer identity and timestamps.
+- Read-only dataset revision snapshots showing preserved wording, sources, dialect and licensing.
+- Editor-led independent reviewer assignment with a required rationale and audit record (migration `202610140001_reviewer_assignment.sql` tested locally and applied to the shared project after approval).
 - Article drafts, revisions, independent review, publication and separately proposed corrections.
 - Immutable versioned dataset releases, JSONL downloads and per-entry licensing/attribution manifests.
 - English/Somali interface labels, editorial controls and project copy with a persistent language preference. Contributed content retains its original language; Somali copy needs scholar review.

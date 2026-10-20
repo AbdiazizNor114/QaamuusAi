@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { emptySharedCommunity } from "@/lib/shared-community";
+import { expiredSessionMessage, isInvalidSession } from "@/lib/session";
 export async function GET() {
   const db = await supabase();
   if (!db) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
@@ -9,7 +10,7 @@ export async function GET() {
     error: authError,
   } = await db.auth.getUser();
   if (authError && authError.name !== "AuthSessionMissingError")
-    return NextResponse.json({ error: "Could not verify your session." }, { status: 503 });
+    return NextResponse.json({ error: isInvalidSession(authError) ? expiredSessionMessage : "Could not verify your session." }, { status: isInvalidSession(authError) ? 401 : 503, headers: { "Cache-Control": "private, no-store" } });
   const articles = await db
     .from("articles")
     .select("*")

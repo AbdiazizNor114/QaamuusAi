@@ -2,9 +2,16 @@
   "name": "qaamuusai",
   "private": true,
   "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "pnpm --filter @qaamuusai/web dev",
     "build": "pnpm --filter @qaamuusai/web build",
+    "start": "pnpm --filter @qaamuusai/web start",
+    "deploy:check": "node --env-file-if-exists=apps/web/.env.local tools/deploy-check.mjs",
+    "deploy:smoke": "node tools/deploy-smoke.mjs",
+    "test:deploy": "node --test tests/deployment.test.mjs",
     "typecheck": "pnpm --filter @qaamuusai/web typecheck",
     "lint": "pnpm --filter @qaamuusai/web lint",
     "test": "pnpm --filter @qaamuusai/web test",

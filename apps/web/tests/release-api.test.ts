@@ -3,6 +3,7 @@ const { client } = vi.hoisted(() => ({ client: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({ supabase: client }));
 import { GET } from "../src/app/api/releases/[id]/route";
 import { emptySharedCommunity, sharedCommunitySchema } from "../src/lib/shared-community";
+import { createHash } from "node:crypto";
 const id = "11111111-1111-4111-8111-111111111111";
 const snapshot = [{ id, term: "Synthetic immutable entry", version: 1 }];
 const manifest = [
@@ -87,4 +88,33 @@ it("does not fabricate a missing release", async () => {
       })
     ).status,
   ).toBe(404);
+});
+it("JSON and JSONL represent the same frozen records with verifiable checksums", async () => {
+  setup({ version: "0.1.0", snapshot, license_manifest: manifest });
+  const context = { params: Promise.resolve({ id }) };
+  const checksums = await (
+    await GET(new Request(`http://localhost/api/releases/${id}?format=checksums`), context)
+  ).text();
+  for (const format of ["json", "jsonl", "manifest"]) {
+    const response = await GET(
+      new Request(`http://localhost/api/releases/${id}?format=${format}`),
+      context,
+    );
+    const body = await response.text();
+    const hash = createHash("sha256").update(body).digest("hex");
+    expect(response.headers.get("x-checksum-sha256")).toBe(hash);
+    expect(response.headers.get("etag")).toBe(`"${hash}"`);
+    expect(checksums).toContain(hash);
+    if (format === "json") expect(JSON.parse(body)).toEqual(snapshot);
+    if (format === "jsonl")
+      expect(
+        body
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line)),
+      ).toEqual(snapshot);
+  }
+  expect(
+    (await GET(new Request(`http://localhost/api/releases/${id}?format=csv`), context)).status,
+  ).toBe(400);
 });

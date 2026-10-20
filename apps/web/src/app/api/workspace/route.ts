@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { emptySharedState } from "@/lib/shared";
+import { expiredSessionMessage, isInvalidSession } from "@/lib/session";
 
 export async function GET() {
   const db = await supabase();
@@ -14,8 +15,8 @@ export async function GET() {
   } = await db.auth.getUser();
   if (authError && authError.name !== "AuthSessionMissingError")
     return NextResponse.json(
-      { error: "Could not verify your session. Please sign in again." },
-      { status: 503 },
+      { error: isInvalidSession(authError) ? expiredSessionMessage : "Could not verify your session. Please try again." },
+      { status: isInvalidSession(authError) ? 401 : 503, headers: { "Cache-Control": "private, no-store" } },
     );
   const entries = await db
     .from("dataset_entries")
@@ -50,7 +51,21 @@ export async function GET() {
   const disputes = ids.length
     ? await db.from("linguistic_disputes").select("*").in("revision_id", ids).limit(500)
     : { data: [], error: null };
-  if ([profile, roleRows, revisions, comments, disputes].some((result) => result.error))
+  const disputeIds = (disputes.data ?? []).map((row) => row.id);
+  const revisionHistory = ids.length
+    ? await db.from("audit_logs").select("id,record_id,actor_id,action,created_at,details")
+        .in("record_id", ids).in("action", ["revision_created", "revision_snapshot"])
+        .order("created_at", { ascending: false }).limit(1000)
+    : { data: [], error: null };
+  const reviewHistory = ids.length
+    ? await db.from("review_decisions").select("*").in("revision_id", ids)
+        .order("created_at").limit(1000)
+    : { data: [], error: null };
+  const evidence = disputeIds.length
+    ? await db.from("dispute_evidence").select("*").in("dispute_id", disputeIds)
+        .order("created_at").limit(1000)
+    : { data: [], error: null };
+  if ([profile, roleRows, revisions, comments, disputes, evidence, reviewHistory, revisionHistory].some((result) => result.error))
     return NextResponse.json({ error: "Could not load your shared workspace." }, { status: 503 });
   return NextResponse.json(
     {
@@ -60,6 +75,9 @@ export async function GET() {
       revisions: revisions.data,
       comments: comments.data,
       disputes: disputes.data,
+      evidence: evidence.data,
+      reviewHistory: reviewHistory.data,
+      revisionHistory: revisionHistory.data,
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );

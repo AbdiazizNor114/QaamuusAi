@@ -38,8 +38,38 @@ export const sharedStateSchema = z.object({
       resolved_at: z.string().nullable(),
     }),
   ),
+  evidence: z.array(z.object({
+    id: z.uuid(),
+    dispute_id: z.uuid(),
+    author_id: z.uuid(),
+    position: z.string(),
+    source: z.string(),
+    created_at: z.string(),
+  })).default([]),
+  reviewHistory: z.array(z.object({
+    id: z.uuid(), revision_id: z.uuid(), reviewer_id: z.uuid(),
+    decision: z.enum(statuses), rationale: z.string(), created_at: z.string(),
+  })).default([]),
+  revisionHistory: z.array(z.object({
+    id: z.uuid(), record_id: z.uuid(), actor_id: z.uuid().nullable(),
+    action: z.enum(["revision_created", "revision_snapshot"]), created_at: z.string(),
+    details: z.object({ after: sharedRecordSchema }),
+  })).default([]),
 });
 export type SharedState = z.infer<typeof sharedStateSchema>;
+export function reviewQueue(state: SharedState): SharedRecord[] {
+  if (!state.user) return [];
+  const editor = state.roles.includes("editor");
+  const reviewer = state.roles.includes("reviewer");
+  return state.revisions.filter((row) => {
+    if (row.author_id === state.user?.id) return false;
+    if (editor) return ["submitted", "under_review", "approved"].includes(row.status ?? "");
+    return reviewer && (
+      (row.status === "submitted" && (!row.assigned_reviewer_id || row.assigned_reviewer_id === state.user?.id)) ||
+      (row.status === "under_review" && row.assigned_reviewer_id === state.user?.id)
+    );
+  });
+}
 export const emptySharedState: SharedState = {
   configured: false,
   user: null,
@@ -49,5 +79,8 @@ export const emptySharedState: SharedState = {
   revisions: [],
   comments: [],
   disputes: [],
+  evidence: [],
+  reviewHistory: [],
+  revisionHistory: [],
 };
 export const sharedCategories = categories;

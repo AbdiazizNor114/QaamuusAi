@@ -1,6 +1,6 @@
 # Access control
 
-Browser-local roles are synthetic demo identities and protect no shared data. Never put real personal or sensitive unpublished data in this mode.
+The application ships no browser-local role selector or synthetic workspace. Account identity and authority come from Supabase; missing configuration does not enable a fallback workspace.
 
 All shared tables enable RLS. Public clients can read published entries, articles and releases. Authenticated contributors can create drafts, read their own revisions and submit them through a function. Assigned reviewers and editors can read authorized proposals. Independent editors authorize publication and dispute resolution. Technical admins can read operational audit logs and profiles but cannot editorially transition proposals.
 
@@ -14,6 +14,6 @@ The approved third migration replaces direct scholar/article proposal inserts wi
 
 Article proposals remain private to authors and authorized independent reviewers/editors. Publication requires recorded independent approval and a redistributable license; corrections create separate proposals and published versions. Dispute/resolution rationales remain in article decision history. Releases freeze server-selected published entries and attribution/license manifests; clients cannot overwrite release snapshots or published articles. The community API accepts only six allowlisted commands with Zod-validated payloads; PostgreSQL makes the final authority decision.
 
-Local follow-on controls deny self-elevation and self-review, separate editorial and operational grants, enforce reviewer assignment, preserve article/release snapshots and validate saved state. Invalid saves are retained under a recovery key. Submitted text is escaped by React. Headers deny framing, object embedding, MIME sniffing and device permissions. The policy intentionally stops short of a nonce-based script CSP; add that with authenticated server integration. Browser-local permissions are demonstration behavior, not a security boundary.
+Shared controls deny self-elevation and self-review, separate editorial and operational grants, enforce reviewer assignment, and preserve article/release snapshots. Submitted text is escaped by React. Headers deny framing, object embedding, MIME sniffing and device permissions. The policy intentionally stops short of a nonce-based script CSP; this remains a future hardening task. Old browser-local saves are no longer consumed or restored.
 
 All three migrations are tested with embedded PostgreSQL (PGlite), mocked Supabase `auth.uid()` and synthetic users. Ten scenarios cover dataset/article privacy, immutable snapshots, self-elevation/self-review denial, separated administrative powers, scholar decisions, publication, corrections, disputes, licensing and releases. The third migration was applied after approval of Supabase's policy-change warning; verification reports 14 RLS-enabled tables, seven new community functions and zero assigned roles. Hosted privileged RLS/session-revocation tests remain pending. Docker's daemon is unavailable for a separate local Supabase stack.

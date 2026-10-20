@@ -2,12 +2,12 @@
 
 1. Foundation: pnpm monorepo, shared validation, Next.js and development scripts.
 2. Data and authority: PostgreSQL migrations, RLS, revision history and controlled roles.
-3. Workflows: local demonstration submissions, reviews, disputes and publication; authenticated API for shared data.
+3. Workflows: authenticated submissions, independent reviews, disputes and publication.
 4. Interface: datasets, articles, contribution workspace, review queue and administration.
-5. Data quality: demonstration JSONL, Python validator and approved export rules.
+5. Data quality: Python validator, isolated test fixtures and approved export rules.
 6. Verification: TypeScript, lint, unit tests, browser workflows and production build.
 
-All six original phases have been implemented. The demo remains browser-local; the configured default interface now connects core dataset and community workflows to Supabase.
+All six original phases have been implemented. The public catalog and authenticated workspace use Supabase; the old browser-local sandbox and its sample language data have been removed.
 
 No app deployment, agent-created external accounts or AI training are part of this prototype. Users can sign in and store their own profiles/proposals in the authorized Supabase project.
 Production readiness requires applying and testing migrations in a local Supabase instance, scholar approval of governance, accessibility review and real integration tests.

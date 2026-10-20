@@ -7,4 +7,4 @@
 5. Review and publication remain separate decisions.
 6. Where evidence supports multiple variants, create separate attributed proposals with dialect metadata.
 
-The browser demo records evidence and an editor resolution in local history. The database uses `linguistic_disputes`, `dispute_evidence`, `resolve_dispute` and immutable review decisions. Appeals and scholar board approval remain future governance work.
+The database uses `linguistic_disputes`, `dispute_evidence`, `resolve_dispute` and immutable review decisions. Appeals and scholar board approval remain future governance work.

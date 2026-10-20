@@ -154,14 +154,11 @@ export function PublicSite({ page }: { page: string }) {
         <span>
           <ShieldCheck size={15} /> A community-governed Somali language commons
         </span>
-        <Link href="/demo/datasets">
-          Explore the demo <ArrowRight size={14} />
-        </Link>
       </div>
       <main className="commons-main">
         {(page === "" || page === "datasets" || tech) && (
           <>
-            <div className="commons-page-heading">
+            <div className={`commons-page-heading${page === "" ? " commons-home-heading" : ""}`}>
               <span className="commons-eyebrow">SOMALI LANGUAGE COMMONS</span>
               <h1>{tech ? "Terminology in progress" : page === "" ? "qaamuusAi" : "Datasets"}</h1>
               <p>
@@ -169,6 +166,10 @@ export function PublicSite({ page }: { page: string }) {
                   ? "A shared vocabulary for the interfaces, tools and systems we use every day."
                   : "Somali vocabulary, translations and grammar, with sources and permissions kept alongside every entry."}
               </p>
+              {page === "" && <>
+                <div className="commons-home-actions"><Link href="/contribute">Contribute an entry <ArrowRight size={16} /></Link><a href="/api/export" download>Export JSONL <ArrowDownToLine size={16} /></a></div>
+                <div className="commons-home-mark" aria-label="Af Soomaali"><span>Af</span><div>SOOMAALI</div><BookOpen size={45} aria-hidden="true" /></div>
+              </>}
             </div>
             {tech ? (
               <div className="commons-planning">
@@ -329,8 +330,8 @@ export function PublicSite({ page }: { page: string }) {
                         Clear filters
                       </button>
                     ) : (
-                      <Link href="/demo/datasets">
-                        Browse sample data in the demo <ArrowRight size={16} />
+                      <Link href="/about">
+                        About the commons <ArrowRight size={16} />
                       </Link>
                     )}
                   </div>
@@ -712,8 +713,8 @@ export function PublicSite({ page }: { page: string }) {
                 <Globe size={24} />
                 <h2>Open participation</h2>
                 <p>
-                  Anyone can browse published data. Sign-in is needed to contribute. The demo is a
-                  separate sandbox with authored examples, not scholar-verified content.
+                  Anyone can browse published data. Sign-in is needed to contribute. Proposals
+                  require independent review before editorial publication.
                 </p>
               </div>
             </div>
@@ -753,8 +754,8 @@ export function PublicSite({ page }: { page: string }) {
                   <div className="commons-empty">
                     <FileText size={28} />
                     <h2>No published articles yet.</h2>
-                    <Link href="/demo/articles">
-                      Read the demo project notes <ArrowRight size={16} />
+                    <Link href="/about">
+                      About the project <ArrowRight size={16} />
                     </Link>
                   </div>
                 )}
@@ -792,7 +793,6 @@ export function PublicSite({ page }: { page: string }) {
           <Link href="/developers">Developer access</Link>
           <Link href="/releases">Release history</Link>
           <Link href="/about">Contribute / contact</Link>
-          <Link href="/demo/datasets">Demo</Link>
           <Link href="/login">Sign in</Link>
         </div>
       </footer>

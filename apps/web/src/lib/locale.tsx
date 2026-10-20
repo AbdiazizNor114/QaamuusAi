@@ -124,7 +124,6 @@ export const somali: Record<string, string> = {
   "Switch language": "Beddel luqadda",
   "Open navigation": "Fur hagidda",
   Workspace: "Goobta shaqada",
-  "Demonstration workspace": "Goob tusaale ah",
   "· Authored examples, not scholar-verified data": "· Tusaalooyin aan aqoonyahan ansixin",
   "Local prototype": "Tusaale maxalli ah",
   "COMMUNITY WORKSPACE": "GOOBTA BULSHADA",
@@ -153,7 +152,6 @@ export const somali: Record<string, string> = {
   "Connections between two languages.": "Xiriirka laba luqadood.",
   "Patterns that bring language to life.": "Qaababka luqadda.",
   "Published entries": "Diiwaannada la daabacay",
-  "CC0 demonstration release": "Tusaalaha CC0",
   "Provenance and licensing included in every export":
     "Isha iyo ruqsadda waa lagu daraa soo saar kasta",
   "BUILT TOGETHER": "WADAJIR LOO DHISAY",
@@ -204,24 +202,18 @@ export const somali: Record<string, string> = {
   "Publish a version": "Daabac nooc",
   "Start with one entry": "Ku bilow diiwaan",
   "A source and a clear meaning are a good beginning.": "Il iyo macne cad ayaa bilow fiican ah.",
-  "Create a demo draft": "Samee qabyo tusaale",
   "My contributions": "Wax-ku-darkayga",
   "PLATFORM OPERATIONS": "HAWLAHA NIDAAMKA",
   "Operational access is separate from linguistic authority.":
     "Maamulka farsamadu wuu ka gooni yahay awoodda luqadda.",
   "Technical administrator role required": "Xilka maamulka farsamada ayaa loo baahan yahay",
-  "Choose the demo administrator role to inspect the operations view.":
-    "Dooro aqoonsiga maamulka farsamada.",
   Environment: "Deegaanka",
   "Shared data": "Xogta wadaagga",
-  "Browser-local demo": "Tusaale ku kaydsan biraawsarka",
   "Not connected in this interface": "Weli lama xiriirin",
   Governance: "Maamulka",
   Provisional: "Ku meel gaar",
   "Editorial override": "Ka gudbid tifaftir",
   Disabled: "Xiran",
-  "Demo data": "Xog tusaale",
-  "Reset demo workspace": "Dib u bilow tusaalaha",
   "Audit history": "Taariikhda hubinta",
   "No local decisions recorded.": "Go'aan maxalli ah lama kaydin.",
   "Language. Knowledge. Together.": "Luqad. Aqoon. Wadajir.",
@@ -246,7 +238,6 @@ export const somali: Record<string, string> = {
   Variation: "Kala duwanaansho",
   "Not yet reviewed": "Weli lama eegin",
   "Data classification": "Nooca xogta",
-  "Demonstration only": "Tusaale keliya",
   "Propose a correction": "Soo jeedi sixid",
   "Decision rationale": "Sababta go'aanka",
   "Record your reasoning or supporting evidence": "Qor sababtaada ama caddaynta",
@@ -274,24 +265,21 @@ export const somali: Record<string, string> = {
   "Needs your action": "Waxqabadkaaga sugaya",
   "No actions waiting.": "Wax tallaabo ah kuma sugna.",
   "No recent activity.": "Ma jiro dhaqdhaqaaq dhowaan.",
-  "Publication blocked: permission pending.": "Daabacaaddu waa xanniban tahay: oggolaansho ayaa la sugayaa.",
+  "Publication blocked: permission pending.":
+    "Daabacaaddu waa xanniban tahay: oggolaansho ayaa la sugayaa.",
   "Resubmit for review": "Mar kale u gudbi dib-u-eegis",
   "Pending applications": "Codsiyada sugaya",
   "Select reviewer": "Dooro dib-u-eegaha",
   "Recorded version": "Noocii la kaydiyey",
   "PROJECT NOTE": "QORAAL MASHRUUC",
   "Close article": "Xir maqaalka",
-  "Demo identity": "Aqoonsi tusaale",
-  "Demo role": "Xil tusaale",
   "Welcome to the commons": "Ku soo dhowow bulshada",
   "Sign in with your existing community account.": "Ku soo gal akoonkaaga bulshada.",
   "Email address": "Cinwaanka iimaylka",
   "Send sign-in link": "Dir xiriir soo-gal",
   "Exploring the prototype?": "Ma sahaminaysaa tusaalaha?",
-  "Open the demo workspace": "Fur goobta tusaalaha",
   "Your contribution interests and community permissions.":
     "Danaha wax-ku-darkaaga iyo xilalkaaga bulshada.",
-  "Demo display name": "Magaca tusaalaha",
   "Areas of expertise": "Meelaha aqoonta",
   Biography: "Taariikh kooban",
   "Profile complete": "Aqoonsiga oo dhammaystiran",
@@ -394,22 +382,16 @@ export const somali: Record<string, string> = {
 };
 Object.assign(somali, {
   "3 collections ·": "3 ururin ·",
-  "demo entries": "diiwaanno tusaale ah",
   entries: "diiwaanno",
-  "DEMO v0.1": "TUSAALE v0.1",
   "Create contribution": "Samee wax-ku-dar",
   "Entry details": "Faahfaahinta diiwaanka",
   "Project article": "Maqaal mashruuc",
-  "Initial demonstration record ·": "Diiwaanka tusaalaha ee hore ·",
   "Assignment rationale": "Sababta qaybinta",
   "Position and evidence preserved.": "Aragtida iyo caddaynta waa la kaydiyey.",
   "qaamuusAi · Provisional editorial guidance": "qaamuusAi · Hagid tifaftir oo ku meel gaar ah",
   "qaamuusAi · Project note · 3 min read": "qaamuusAi · Qoraal mashruuc · Akhris 3 daqiiqo",
   "Restore the initial examples and remove local proposals and decisions.":
     "Soo celi tusaalooyinkii hore oo tirtir soo jeedimaha iyo go'aannada maxalliga ah.",
-  "Reset all demo proposals and history in this browser?":
-    "Ma tirtirtaa soo jeedimaha iyo taariikhda tusaalaha ee biraawsarkan?",
-  "Demo workspace reset.": "Goobta tusaalaha waa dib loo bilaabay.",
   "Draft saved. Open My submissions to submit it for review.":
     "Qabyada waa la kaydiyey. Ka gudbi qaybta Waxan gudbiyey.",
   "Browser storage is unavailable or full. Your latest changes are not saved.":
@@ -422,8 +404,6 @@ Object.assign(somali, {
     "Wax-ku-darayaashu way soo jeediyaan. Dib-u-eegayaashu way hubiyaan. Tifaftirayaashu waxay isku dubbaridaan daabacaadda iyo khilaafaadka. Maamulka farsamadu wuxuu maamulaa nidaamka, mana laha awood luqadeed oo toos ah.",
   "Every entry carries provenance, licensing and version metadata. Corrections create revisions. Published versions stay intact. Disagreements and evidence remain part of the record.":
     "Diiwaan kasta wuxuu leeyahay il, ruqsad iyo nooc. Sixiddu waxay samaysaa nooc cusub. Noocyada la daabacay waa la dhowraa, khilaafaadka iyo caddayntana waa la kaydiyaa.",
-  "The governance process awaits approval by founding scholars. All data shown in this local prototype is clearly marked demonstration material. No AI training, external accounts or public deployment are included.":
-    "Habka maamulka wuxuu sugayaa ansixinta aqoonyahannada aasaasayaasha. Xogta tusaalahan maxalliga ahi waa tusaale keliya. Tababar AI, akoonno dibadeed iyo daabacaad dadweyne kuma jiraan.",
   "Add the proposed entry, source, license and any known variation.":
     "Ku dar diiwaanka, isha, ruqsadda iyo kala duwanaanshaha la yaqaan.",
   "A reviewer records feedback and a reason for every decision.":
@@ -446,8 +426,6 @@ Object.assign(somali, {
     "Kala aragtidu waxay muujin kartaa hodantinimada luqadda. Kaydi wada hadalka.",
   "qaamuusAi brings contributors and language specialists into a shared editorial process. A proposal begins as a draft, receives independent review, and is published only after approval. These project notes describe the prototype process; they are not scholarly articles.":
     "qaamuusAi wuxuu isku keenaa wax-ku-darayaasha iyo khubarada luqadda. Soo jeedintu waxay ka bilaabataa qabyo, waxaa la siiyaa dib-u-eegis madax-bannaan, waxaana la daabacaa kaddib ansixinta. Kuwani waa qoraallo sharxaya habka tusaalaha, mana aha maqaallo aqooneed la ansixiyey.",
-  "Record the source of an entry and the permission to redistribute it before publication. A source citation alone does not establish a license. Dialect and regional variation should be recorded when known, and uncertainty should stay visible. Demonstration entries in this prototype are authored examples, not extracted from third-party resources.":
-    "Diiwaangeli isha iyo oggolaanshaha dib-u-qaybinta ka hor daabacaadda. Tixraac il keliya ma xaqiijiyo ruqsad. Diiwaangeli lahjadda iyo kala duwanaanshaha la yaqaan, hubanti la'aantana muuji. Xogta tusaalahani waa mid loo qoray mashruuca.",
   "Reviewers should record distinct positions and supporting evidence. An editor coordinates the resolution without erasing disagreement. Multiple variants can be proposed and reviewed separately when justified. This is a provisional process for founding scholars to approve.":
     "Dib-u-eegayaashu waa inay kaydiyaan aragtiyada iyo caddaynta. Tifaftire ayaa isku dubbarida xallinta isaga oo aan tirtirin khilaafka. Kala duwanaanshaha waxaa loo soo jeedin karaa oo loo hubin karaa si gaar ah. Habkani wuxuu sugayaa ansixinta aqoonyahannada.",
   "Contributor permission is required.": "Xilka wax-ku-daraha ayaa loo baahan yahay.",
@@ -475,8 +453,6 @@ Object.assign(somali, {
   "Article rejected": "Maqaal la diiday",
   "Article disputed": "Maqaal lagu muransan yahay",
   "Article evidence added": "Caddayn maqaal lagu daray",
-  "Saved demo data could not be read. A recovery copy is retained when storage is available.":
-    "Xogtii la kaydiyey lama akhrin karin. Nuqul soo-kabasho ah ayaa la hayaa haddii kaydku shaqaynayo.",
   "Could not save the change.": "Isbeddelka lama kaydin karin.",
 });
 export function translate(value: string, language: Language): string {

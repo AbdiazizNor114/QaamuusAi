@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import NextLink from "next/link";
 import { ArrowDownToLine, Plus, X } from "lucide-react";
 import type { SharedState } from "@/lib/shared";
-import { articleInput } from "@/lib/community";
+import { articleInput } from "@/lib/article-input";
 import type { SharedCommunity, SharedArticle } from "@/lib/shared-community";
 import { useLocale, auditTitles } from "@/lib/locale";
 import { readableError } from "@/lib/errors";

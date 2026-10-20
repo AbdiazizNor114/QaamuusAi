@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { WorkspaceApp } from "@/components/workspace-app";
 import { SharedWorkspace } from "@/components/shared-workspace";
 import { PublicSite } from "@/components/public-site";
 import type { Metadata } from "next";
@@ -53,18 +52,14 @@ export async function generateMetadata({
 export default async function Page({ params }: { params: Promise<{ path?: string[] }> }) {
   const { path } = await params;
   const segments = path ?? [];
-  const demo = segments[0] === "demo";
+  if (segments[0] === "demo") notFound();
   const shared = segments[0] === "shared";
-  const page = (demo || shared ? segments.slice(1) : segments).join("/");
+  const page = (shared ? segments.slice(1) : segments).join("/");
   if (!pages.includes(page)) notFound();
-  if (!demo && !shared && page in publicPages) return <PublicSite page={page} />;
-  const configured =
-    !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if ((configured || shared || page === "reset-password") && !demo && page !== "about")
-    return (
-      <SharedWorkspace
-        page={page === "" ? "datasets" : page === "contribute" ? "dashboard/submissions" : page}
-      />
-    );
-  return <WorkspaceApp page={page} />;
+  if (!shared && page in publicPages) return <PublicSite page={page} />;
+  return (
+    <SharedWorkspace
+      page={page === "" ? "datasets" : page === "contribute" ? "dashboard/submissions" : page}
+    />
+  );
 }

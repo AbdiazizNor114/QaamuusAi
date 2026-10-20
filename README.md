@@ -11,7 +11,7 @@ pnpm install
 pnpm dev
 ```
 
-Open http://127.0.0.1:3000. The public catalog, `/datasets`, `/articles`, `/technology`, `/developers` and `/about` work without sign-in. Published shared records load when Supabase is configured; empty collections are not filled with demo records. Authenticated work starts at `/dashboard`. The isolated demo is always available at `/demo/dashboard`; its proposals, decisions and role changes stay in browser local storage. Demo roles never authorize shared operations. Do not put real personal or unpublished contributor data into the demo.
+Open http://127.0.0.1:3000. The public catalog, `/datasets`, `/articles`, `/technology`, `/developers` and `/about` work without sign-in. Published shared records load when Supabase is configured; empty collections remain empty until real publication. Authenticated work starts at `/dashboard`. The browser-local sandbox and sample language datasets have been removed; old `/demo` URLs return 404. Missing authentication configuration never enables local roles or simulated workflow decisions.
 
 ### Public developer access
 
@@ -36,14 +36,13 @@ pnpm test:e2e
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r tools/dataset-validator/requirements.txt
 .venv\Scripts\python.exe -m pytest tools/dataset-validator -q
-.venv\Scripts\python.exe tools/dataset-validator/validator.py datasets/demo/v0.1.jsonl --published-only
 ```
 
 ## Prototype features
 
 - Dataset collection filters, word search, record details and JSONL exports.
 - Draft proposals, corrections, editing, independent reviews, changes requested, rejection, disputes, evidence and editor-led publication.
-- Preserved published versions and per-decision snapshots in demo history.
+- Preserved published versions and audited per-decision snapshots in Supabase.
 - Dashboard, submissions, review queue, disputes, operational administration, project articles, about, contribution and sign-in pages.
 - Profiles, scholar applications, independent application decisions and audited grants/revocations with combined roles.
 - Reviewer assignments, persistent discussions, evidence and editor resolution histories.
@@ -63,12 +62,12 @@ python -m venv .venv
 ```text
 apps/web/
   src/app/               App Router pages, authentication and API routes
-  src/components/        Interactive demo workspace
+  src/components/        Public catalog and authenticated scholar workspace
   src/lib/               Workflow engine and server Supabase client
   tests/                 Vitest and Playwright verification
 packages/schemas/        Zod entry schema and workflow permission rules
 packages/sdk/            Future SDK placeholder
-datasets/demo/           Versioned, unverified CC0 examples
+datasets/                Dataset provenance and release guidance
 tools/dataset-validator/ Python validator and tests
 supabase/migrations/     Tables, RLS, transactional workflow and history
 docs/                    Architecture, governance, data, security, roadmap
@@ -93,13 +92,13 @@ Before deployment, set `APP_ORIGIN` to the canonical HTTPS application origin an
 
 ## Limitations and next steps
 
-This is a functioning local prototype, not a production release. Shared profile setup, dataset workflows, scholar applications/decisions, audited role administration, article draft/edit/review/publication/correction and frozen dataset release creation/downloads are connected to Supabase. The third migration adds controlled community RPCs and article decision history. Publication requires independent approval and redistribution permission. Role changes reject self-modification and separate editorial from operational authority; changes are audited and serialized. No founding roles are granted automatically. Shared dataset reviewer assignment, evidence entry and dataset audit-history presentation still need UI/endpoints. The dataset/article browsers load up to 500 records; discussions and article decisions up to 1,000 rows; releases up to 100. All three migrations are tested with PGlite and applied to the authorized project. The user has confirmed real sign-in and profile/draft persistence after refresh; refreshed/revoked sessions, concurrent users and hosted privileged workflows still need verification. Published demo status is not scholarly validation. The SDK remains a placeholder. Founding scholars must ratify governance and review Somali interface copy.
+This is a first-deployment prototype. Shared profile setup, dataset reviews/disputes, reviewer assignments, evidence/history, scholar applications, audited role administration, articles, terminology proposals/claims and frozen releases are connected to Supabase. Publication requires independent approval and redistribution permission. Role changes reject self-modification and separate editorial from operational authority. Role grants and claims are audited; no roles are granted automatically. Dataset/article browsers load up to 500 records; discussions and article decisions up to 1,000 rows; releases up to 100. Migrations are tested with PGlite. Production DNS, origin/auth configuration, distributed limits and monitoring still need verification. The SDK remains a placeholder. Founding scholars must ratify governance and review Somali interface copy.
 
-Next: designate explicitly approved founding editor/technical-admin accounts through an audited, trusted database operation, then exercise the shared scholar/review/publication/release workflows with independent accounts. Complete concurrency, revocation and remaining dataset controls before deployment. No demo rows, identities or role grants were imported into the shared project. A normal signed-in contributor can submit articles/applications but cannot approve them, manage roles or publish releases.
+Before launch, complete production configuration and exercise independent sign-in, review and publication workflows. A normal signed-in contributor can submit articles/applications but cannot approve them, manage roles or publish releases. Automated tests use isolated synthetic fixtures, never seed public language content.
 
 ## Licensing
 
-Software is MIT licensed (see `LICENSE`). Original demonstration records are CC0-1.0. Project explanatory article copy is CC-BY-4.0 with attribution to qaamuusAi. Future datasets and articles carry independent record-specific licenses; software licensing never grants rights to third-party language resources.
+Software is MIT licensed (see `LICENSE`). Datasets and articles carry independent record-specific licenses; software licensing never grants rights to third-party language resources. English terminology planning labels do not constitute approved Somali translations.
 
 ## Reference documentation
 

@@ -32,7 +32,7 @@ test("public library, terminology and developer downloads work without login", a
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
-      if (path === "/developers" || path === "/datasets") await page.screenshot({ path: `test-results/public-${path.slice(1)}-${width}.png`, fullPage: true });
+      if (path === "/" || path === "/developers" || path === "/datasets") await page.screenshot({ path: `test-results/public-${path.slice(1) || "home"}-${width}.png`, fullPage: true });
     }
   }
   await page.getByRole("button", { name: "Open navigation" }).click();

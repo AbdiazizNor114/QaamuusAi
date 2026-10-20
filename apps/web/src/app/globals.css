@@ -75,6 +75,15 @@
 .commons-release-downloads { display: flex; flex-wrap: wrap; gap: 14px 24px; margin-top: 20px; }
 .commons-release-downloads a { display: inline-flex; gap: 7px; align-items: center; color: #176949; }
 .commons-release-downloads svg { flex-shrink: 0; }
+.commons-home-heading { position: relative; min-height: 270px; padding-right: 330px; }
+.commons-home-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
+.commons-home-actions a { display: inline-flex; align-items: center; gap: 8px; padding: 11px 16px; border: 1px solid #cbd8cf; border-radius: 5px; font-size: 13px; }
+.commons-home-actions a:first-child { color: white; background: #176949; border-color: #176949; }
+.commons-home-mark { position: absolute; right: 40px; top: 15px; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px 22px; color: #176949; border-left: 1px solid #dbe4dc; padding-left: 60px; width: 240px; }
+.commons-home-mark > span { font: italic 98px Georgia, serif; grid-column: span 2; }
+.commons-home-mark > div { font-size: 10px; letter-spacing: 0; }
+.commons-home-mark svg { opacity: .65; }
+@media (max-width: 800px) { .commons-home-heading { padding-right: 0; min-height: 0; } .commons-home-mark { position: static; border: 0; padding: 0; margin-top: 22px; width: 145px; grid-template-columns: auto auto; gap: 0 20px; } .commons-home-mark > span { font-size: 48px; grid-column: 1; } .commons-home-mark > div { grid-column: 1; } .commons-home-mark svg { grid-column: 2; grid-row: 1 / 3; width: 36px; } }
 .terminology-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #dbe4dc; border: 1px solid #dbe4dc; }
 .terminology-totals > div { display: flex; flex-direction: column; gap: 6px; padding: 18px; background: white; }
 .terminology-totals strong { font-size: 26px; color: #176949; }
@@ -924,28 +933,6 @@ svg {
 .mobile-toggle {
   display: none;
 }
-.demo-bar {
-  padding: 9px 5%;
-  background: #eff4f0;
-  border-bottom: 1px solid var(--line);
-  font-size: 11px;
-  display: flex;
-  justify-content: space-between;
-  color: #506459;
-  gap: 10px;
-}
-.demo-bar > span,
-.demo-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.demo-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--green);
-  border-radius: 50%;
-}
 .public-shell main {
   max-width: 1280px;
   margin: auto;
@@ -1533,21 +1520,6 @@ footer > span:last-child {
   width: 100%;
   margin-top: 12px;
 }
-.login-demo {
-  margin-top: 28px;
-  border-top: 1px solid var(--line);
-  padding-top: 25px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.login-demo a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--green);
-  margin-top: 10px;
-}
 .admin-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1763,7 +1735,6 @@ textarea {
 }
 @media (min-width: 1500px) {
   .header,
-  .demo-bar,
   footer {
     padding-left: calc((100vw - 1152px) / 2);
     padding-right: calc((100vw - 1152px) / 2);
@@ -1855,14 +1826,6 @@ textarea {
   }
   .nav a {
     height: 35px;
-  }
-  .demo-bar {
-    padding: 8px 4%;
-    font-size: 10px;
-  }
-  .demo-detail,
-  .demo-right {
-    display: none !important;
   }
   .public-shell main {
     padding: 0 5%;

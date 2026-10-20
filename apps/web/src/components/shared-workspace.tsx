@@ -59,7 +59,6 @@ function Link(props: React.ComponentProps<typeof NextLink>) {
     typeof props.href === "string" &&
     pathname.startsWith("/shared") &&
     props.href.startsWith("/") &&
-    !props.href.startsWith("/demo") &&
     !props.href.startsWith("/api") &&
     props.href !== "/about"
       ? `/shared${props.href}`
@@ -354,7 +353,6 @@ export function SharedWorkspace({ page }: { page: string }) {
                 )}
               </Link>
             ))}
-            <Link href="/demo/dashboard">{tr("Demo workspace")}</Link>
           </nav>
           <main className={`shared-main${page === "dashboard" ? " dashboard-main" : ""}`}>
             <div role="status" aria-live="polite" className="shared-notice">

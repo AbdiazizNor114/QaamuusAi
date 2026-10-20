@@ -30,4 +30,3 @@ jobs:
           python-version: "3.11"
       - run: pip install -r tools/dataset-validator/requirements.txt
       - run: pytest tools/dataset-validator -q
-      - run: python tools/dataset-validator/validator.py datasets/demo/v0.1.jsonl --published-only

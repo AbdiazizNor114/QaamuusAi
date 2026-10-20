@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const db = await supabase();
   if (!db)
     return NextResponse.json(
-      { error: "Use the demo export in the dataset browser. Shared data is not configured." },
+      { error: "Published data is not configured." },
       { status: 503 },
     );
   const data: Record<string, unknown>[] = [];

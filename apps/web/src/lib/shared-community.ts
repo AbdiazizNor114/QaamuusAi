@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { roles, statuses, entrySchema } from "@qaamuusai/schemas";
-import { articleInput } from "./community";
+import { articleInput } from "./article-input";
 const text = z.string().trim().min(1).max(10000);
 export const sharedArticleSchema = articleInput.extend({
   id: z.uuid(),

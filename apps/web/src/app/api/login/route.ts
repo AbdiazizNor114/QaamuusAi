@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   const db = await supabase();
   if (!db)
     return NextResponse.json(
-      { error: "Authentication is not configured. Use the demo workspace." },
+      { error: "Authentication is not configured. Please contact the project administrator." },
       { status: 503 },
     );
   const input = z

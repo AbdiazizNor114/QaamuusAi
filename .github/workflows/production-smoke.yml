@@ -1,0 +1,41 @@
+name: Production health checks
+
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-health
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check public production origin
+        run: |
+          set -o pipefail
+          node tools/deploy-smoke.mjs https://qai.smidify.com | tee smoke-results.txt
+      - name: Write health-check summary
+        if: always()
+        run: |
+          echo '## QaamuusAi production health' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Read-only checks against https://qai.smidify.com. No emails or mutations.' >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f smoke-results.txt ]; then cat smoke-results.txt >> "$GITHUB_STEP_SUMMARY"; fi
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

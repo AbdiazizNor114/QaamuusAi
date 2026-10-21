@@ -2,7 +2,7 @@
 
 ## First Deployment Checklist
 
-Candidate public address: `qaamuusai.smidify.com`, using the user's corrected domain `smidify.com`, pending confirmation of subdomain and hosting account. No DNS changes or remote deployment have been made by these preparation steps. Do not overwrite records for the existing apex domain or email service.
+Public address: `https://qai.smidify.com`, deployed on Vercel from `master`. Do not overwrite records for the existing apex domain or email service.
 
 1. Choose the hosting account and link the repository/workspace with access limited to this project. For managed Next.js hosting, use Node 24 and pnpm 11.25.0; retain access to the root workspace and `packages/schemas`, install from the repository root with `pnpm install --frozen-lockfile`, build with `pnpm build`, and select `apps/web` as the framework application where the provider supports monorepos. Do not publish as a static-only export: auth and API routes require a Next.js server runtime. Exact provider settings must be checked once the host is selected.
 2. Configure `NEXT_PUBLIC_SUPABASE_URL` and the publishable key in hosting environment settings, never in Git. Set `APP_ORIGIN` and `NEXT_PUBLIC_SITE_URL` to the same final HTTPS origin. `NEXT_PUBLIC_*` changes require rebuilding. Use a separate Supabase project for untrusted previews rather than granting preview contributors production credentials or private sessions.
@@ -39,6 +39,8 @@ Public catalog, export, terminology, release, status and v1 requests pass throug
 
 CORS controls browser access, not authorization or server-to-server access. All served records must be public. Do not add secret data or a service-role client to public routes.
 
-Monitoring hooks are implemented, but no external monitoring account or alerts are activated. At deployment, connect structured server logs to the host log service and configure an external availability monitor for `/api/status` with a sensible interval (for example five minutes). Alert on persistent 503s, elevated 429s and v1 query failure events. Never log recovery tokens, authorization headers or full query URLs. Check provider timeouts and a distributed limiter before opening access widely.
+The `Production health checks` GitHub Actions workflow runs read-only smoke checks against the fixed production domain after a successful production deployment, or manually from Actions. It uses no Supabase credentials, never follows event-supplied URLs and checks pages, the logo, callback origin, database reachability, API behavior and anonymous access denial. A failed workflow is visible in Actions; configure your GitHub Actions notification preferences to receive failure notifications. This does not roll back a deployment or provide continuous uptime monitoring. The workflow must be pushed before it can run on GitHub.
+
+No continuous external availability monitor is activated. Connect structured server logs to the host log service and configure an external availability monitor for `/api/status` with a sensible interval (for example five minutes). Alert on persistent 503s, elevated 429s and v1 query failure events. Never log recovery tokens, authorization headers or full query URLs. Check provider timeouts and a distributed limiter before opening access widely.
 
 Buy/configure the domain, deploy HTTPS, set environment variables, rebuild for public environment settings, then verify canonical tags, sitemap, allowlisted CORS, limits, recovery redirect allowlist and download hashes on the real origin. Robots directives are not access control. Existing database role/RLS enforcement remains necessary.

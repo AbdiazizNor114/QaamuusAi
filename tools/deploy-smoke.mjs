@@ -25,7 +25,7 @@ async function check(path, validate, options = {}) {
     console.log(`PASS ${path}`);
   } catch {
     failed++;
-    console.error(`FAIL ${path}`);
+    console.log(`FAIL ${path}`);
   }
 }
 function requireValue(value) {
@@ -40,6 +40,16 @@ for (const path of ["/", "/developers", "/releases", "/login"])
 await check("/api/status", async (response) => {
   requireValue(response.status === 200);
   requireValue((await response.json()).status === "operational");
+});
+await check("/qaamuusai-logo.svg", async (response) => {
+  requireValue(response.status === 200);
+  requireValue(response.headers.get("content-type")?.includes("image/svg+xml"));
+  const body = await response.text();
+  requireValue(body.includes("<svg") && body.includes("Qaamuus"));
+});
+await check("/auth", async (response) => {
+  requireValue([302, 303, 307, 308].includes(response.status));
+  requireValue(response.headers.get("location") === new URL("/login?error=callback", origin).href);
 });
 await check("/api/v1/entries?limit=1", async (response) => {
   const body = await response.json();

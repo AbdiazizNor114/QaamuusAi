@@ -29,6 +29,8 @@ test("removed sandbox URLs return 404 and public pages contain no demo links", a
     "/releases",
   ]) {
     await page.goto(path);
+    await expect(page.locator("a.brand img")).toHaveAttribute("alt", "QaamuusAi");
+    await expect(page.locator("a.brand img")).toHaveJSProperty("naturalWidth", 840);
     await expect(page.locator('a[href*="/demo"]')).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText(/\bdemo\b/i);
     if (path === "/") {
@@ -50,6 +52,7 @@ test("removed sandbox URLs return 404 and public pages contain no demo links", a
   await page.route("**/api/community", (route) => route.fulfill({ json: emptySharedCommunity }));
   await page.goto("/login");
   await expect(page.locator("a.brand")).toHaveAttribute("href", "/");
+  await expect(page.locator("a.brand img")).toHaveAttribute("src", "/qaamuusai-logo.svg");
   await page.locator("a.brand").click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByLabel("Af Soomaali", { exact: true })).toBeVisible();

@@ -37,6 +37,7 @@ import { ProposalNotes } from "./proposal-notes";
 import { SharedCommunityPanel } from "./shared-community-panel";
 import { PasswordForm } from "./password-form";
 import { DashboardOverview } from "./dashboard-overview";
+import { BrandLogo } from "./brand-logo";
 import { emptySharedCommunity, sharedCommunitySchema, articleActionCount } from "@/lib/shared-community";
 
 class ApiError extends Error {
@@ -288,8 +289,7 @@ export function SharedWorkspace({ page }: { page: string }) {
       <div className="shared-shell">
         <header className="shared-header">
           <Link href="/" className="brand">
-            <span className="brand-icon"><BookOpen size={23} aria-hidden="true" /></span>
-            <span>Qaamuus<span className="brand-ai">Ai</span></span>
+            <BrandLogo />
           </Link>
           <span className="status-pill">{tr("Shared workspace")}</span>
           <div className="shared-header-actions">

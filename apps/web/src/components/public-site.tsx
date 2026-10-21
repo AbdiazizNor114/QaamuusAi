@@ -21,6 +21,7 @@ import { z } from "zod";
 import { technologyTerms } from "@/lib/technology-terms";
 import { readTerminology } from "@/lib/terminology";
 import { ProposalNotes } from "./proposal-notes";
+import { BrandLogo } from "./brand-logo";
 
 const entry = z.object({
   id: z.string(),
@@ -125,12 +126,7 @@ export function PublicSite({ page }: { page: string }) {
     <div className={`commons-site${page === "" ? " commons-home" : page === "developers" ? " commons-developers" : ""}`}>
       <header className="commons-header">
         <Link className="brand" href="/">
-          <span className="brand-icon">
-            <BookOpen size={23} />
-          </span>
-          <span>
-            Qaamuus<span className="brand-ai">Ai</span>
-          </span>
+          <BrandLogo />
         </Link>
         <nav
           aria-label="Public navigation"

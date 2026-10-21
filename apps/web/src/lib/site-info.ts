@@ -11,7 +11,7 @@ export const publicPages = {
   technology: {
     title: "Terminology in progress | qaamuusAi",
     description:
-      "1,000 English technology starter terms awaiting Somali proposals and independent scholar review. Not an approved dictionary.",
+      "1,000 English technology starter terms awaiting Somali proposals and independent review. Not an approved dictionary.",
   },
   developers: {
     title: "Developer API | qaamuusAi",

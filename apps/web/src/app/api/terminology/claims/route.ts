@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       error.code === "23505"
         ? "Someone has already claimed this term. Refresh to see the current claimant."
         : error.code === "42501"
-          ? "A scholar role is required to claim; only the claimant can release the current claim."
+          ? "A reviewer or editor role is required to claim; only the claimant can release the current claim."
           : "Could not update the shared claim. Please retry.",
     );
   return Response.json({ ok: true }, { headers });

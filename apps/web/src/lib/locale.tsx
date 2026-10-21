@@ -41,7 +41,7 @@ export const somali: Record<string, string> = {
     "Iimaylka ama furaha sirta ahi waa khalad, ama akoonka lama xaqiijin.",
   "Too many sign-in attempts. Please wait before trying again.":
     "Isku-dayada soo-gelidda ayaa badan. Sug ka hor intaadan mar kale isku dayin.",
-  "Scholar application": "Codsiga aqoonyahanka",
+  "Reviewer application": "Codsiga dib-u-eegaha",
   "License manifest": "Liiska ruqsadaha",
   Permission: "Oggolaansho",
   "Article proposals": "Soo-jeedimaha maqaalada",
@@ -133,7 +133,7 @@ export const somali: Record<string, string> = {
   Disputes: "Khilaafaad",
   Administration: "Maamulka",
   "My profile": "Aqoonsigayga",
-  "Scholar applications": "Codsiyada aqoonyahannada",
+  "Reviewer applications": "Codsiyada dib-u-eegayaasha",
   "Article workspace": "Goobta maqaallada",
   "Dataset releases": "Daabacaadaha xogta",
   "Members and roles": "Xubnaha iyo xilalka",

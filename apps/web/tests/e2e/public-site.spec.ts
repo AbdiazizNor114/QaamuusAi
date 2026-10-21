@@ -1,6 +1,32 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { writeTerminology } from "../../src/lib/terminology";
+import { technologyTerms } from "../../src/lib/technology-terms";
 const id = "11111111-1111-4111-8111-111111111111";
+
+test("terminology joins published translations by seed and keeps untranslated terms pending", async ({ page }) => {
+  const form = new FormData();
+  form.set("definition", "Synthetic definition");
+  form.set("example", "Synthetic example");
+  const home = technologyTerms.find((row) => row.id === "tech-navigation-home")!;
+  await page.route("**/api/public", (route) => route.fulfill({ json: {
+    configured: true,
+    entries: [{ id, category: "translation", term: "Hoy", translation: "home", notes: writeTerminology(home, form), source: "Synthetic source", license: "CC0-1.0", dialect: "Maxaatiri", version: 1 }],
+    articles: [], releases: [],
+  } }));
+  await page.goto("/technology");
+  await expect(page.getByText("1000 starter terms / 1 with published translations")).toBeVisible();
+  await page.getByLabel("Search entries", { exact: true }).fill("Hoy");
+  await expect(page.getByText("home", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "View Hoy translation for home" }).click();
+  await expect(page.getByRole("region", { name: "Entry details" })).toBeInViewport();
+  await expect(page.getByRole("region", { name: "Entry details" }).getByText("Synthetic source")).toBeVisible();
+  await page.getByRole("button", { name: "Close entry" }).click();
+  await page.getByLabel("Search entries", { exact: true }).fill("dashboard");
+  await expect(page.getByText("Needs translation", { exact: true })).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByLabel("Technology translation progress").getByText("Hoy", { exact: true })).toBeVisible();
+});
 test("public library, terminology and developer downloads work without login", async ({ page, request }) => {
   await page.route("**/api/public", (route) => route.fulfill({ json: {
     configured: true, entries: [{ id, category: "vocabulary", term: "Tijaabo", translation: "Synthetic test", notes: "Authored test fixture", source: "Synthetic source", license: "CC0-1.0", dialect: "Standard", version: 1 }],
@@ -30,6 +56,15 @@ test("public library, terminology and developer downloads work without login", a
     for (const path of ["/", "/datasets", "/technology", "/developers", "/releases", "/about", "/articles"]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      if (path === "/") {
+        await expect(page.getByRole("link", { name: "Explore the commons" })).toHaveAttribute("href", "#collections");
+        await expect(page.getByLabel("Af Soomaali", { exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Somali belongs in technology." })).toBeVisible();
+        await expect(page.getByRole("link", { name: "Developer resources" })).toHaveAttribute("href", "/developers");
+        await page.getByRole("button", { name: /Grammar Patterns/ }).click();
+        await expect(page.getByRole("heading", { name: "No matching entries." })).toBeVisible();
+        await page.getByRole("button", { name: "Clear filters" }).click();
+      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
       if (path === "/" || path === "/developers" || path === "/datasets") await page.screenshot({ path: `test-results/public-${path.slice(1) || "home"}-${width}.png`, fullPage: true });

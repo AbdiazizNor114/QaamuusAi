@@ -310,7 +310,7 @@ export function TerminologyWorkspace({
                       <strong>
                         {claim.owner_id === userId
                           ? `${claim.display_name} (you)`
-                          : claim.display_name || "Scholar"}
+                          : claim.display_name || "Reviewer"}
                       </strong>{" "}
                       ·{" "}
                       <time dateTime={claim.claimed_at}>

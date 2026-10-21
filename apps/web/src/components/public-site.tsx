@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { technologyTerms } from "@/lib/technology-terms";
+import { readTerminology } from "@/lib/terminology";
 import { ProposalNotes } from "./proposal-notes";
 
 const entry = z.object({
@@ -76,6 +77,10 @@ export function PublicSite({ page }: { page: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
+  const detailRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (selected) detailRef.current?.scrollIntoView({ block: "start" });
+  }, [selected]);
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/public", { cache: "no-store", signal: controller.signal })
@@ -94,6 +99,12 @@ export function PublicSite({ page }: { page: string }) {
     return () => controller.abort();
   }, [retry]);
   const tech = page === "technology";
+  const publishedTerms = new Map<string, Catalog["entries"]>();
+  for (const row of catalog.entries) {
+    const metadata = readTerminology(row.notes);
+    if (metadata)
+      publishedTerms.set(metadata.seed_id, [...(publishedTerms.get(metadata.seed_id) ?? []), row]);
+  }
   const items = catalog.entries.filter(
     (row) =>
       (category === "all" || row.category === category) &&
@@ -104,20 +115,21 @@ export function PublicSite({ page }: { page: string }) {
   const terms = technologyTerms.filter(
     (row) =>
       (category === "all" || row.category === category) &&
-      row.english.toLowerCase().includes(query.trim().toLowerCase()),
+      `${row.english} ${(publishedTerms.get(row.id) ?? []).map((entry) => entry.term).join(" ")}`
+        .toLowerCase().includes(query.trim().toLowerCase()),
   );
   const detail = catalog.entries.find((row) => row.id === selected);
   const currentArticle = catalog.articles.find((row) => row.id === selected);
   const snippet = `const params = new URLSearchParams({\n  q: 'home', category: 'translation',\n  page: '1', limit: '25'\n});\nconst response = await fetch('/api/v1/entries?' + params);\nconst result = await response.json();\nif (!response.ok) throw new Error(result.error.message);\nconsole.log(result.data, result.pagination);`;
   return (
-    <div className="commons-site">
+    <div className={`commons-site${page === "" ? " commons-home" : page === "developers" ? " commons-developers" : ""}`}>
       <header className="commons-header">
         <Link className="brand" href="/">
           <span className="brand-icon">
             <BookOpen size={23} />
           </span>
           <span>
-            qaamuus<span className="brand-ai">Ai</span>
+            Qaamuus<span className="brand-ai">Ai</span>
           </span>
         </Link>
         <nav
@@ -129,7 +141,7 @@ export function PublicSite({ page }: { page: string }) {
               href={item.path}
               key={item.path}
               aria-current={
-                (page === "" && item.path === "/datasets") || item.path === `/${page}`
+                item.path === `/${page}`
                   ? "page"
                   : undefined
               }
@@ -159,34 +171,42 @@ export function PublicSite({ page }: { page: string }) {
         {(page === "" || page === "datasets" || tech) && (
           <>
             <div className={`commons-page-heading${page === "" ? " commons-home-heading" : ""}`}>
-              <span className="commons-eyebrow">SOMALI LANGUAGE COMMONS</span>
-              <h1>{tech ? "Terminology in progress" : page === "" ? "qaamuusAi" : "Datasets"}</h1>
+              <span className="commons-eyebrow">{page === "" ? "OUR LANGUAGE. OUR SHARED FUTURE." : "SOMALI LANGUAGE COMMONS"}</span>
+              <h1>{tech ? "Terminology in progress" : page === "" ? "QaamuusAi" : "Datasets"}</h1>
               <p>
                 {tech
                   ? "A shared vocabulary for the interfaces, tools and systems we use every day."
-                  : "Somali vocabulary, translations and grammar, with sources and permissions kept alongside every entry."}
+                  : page === ""
+                    ? "A living home for the Somali language. Discover words, share knowledge and help build the language resources of tomorrow."
+                    : "Somali vocabulary, translations and grammar, with sources and permissions kept alongside every entry."}
               </p>
               {page === "" && <>
-                <div className="commons-home-actions"><Link href="/contribute">Contribute an entry <ArrowRight size={16} /></Link><a href="/api/export" download>Export JSONL <ArrowDownToLine size={16} /></a></div>
-                <div className="commons-home-mark" aria-label="Af Soomaali"><span>Af</span><div>SOOMAALI</div><BookOpen size={45} aria-hidden="true" /></div>
+                <div className="commons-home-actions"><a href="#collections">Explore the commons <ArrowRight size={16} /></a><Link href="/contribute">Contribute an entry <ArrowUpRight size={16} /></Link></div>
+                <div className="commons-home-mark" aria-label="Af Soomaali"><span>Af</span><div>SOOMAALI</div><BookOpen size={64} strokeWidth={1.2} aria-hidden="true" /><small>A language worth building for.</small></div>
               </>}
             </div>
+            {page === "" && <section className="commons-home-ledger" aria-label="Commons at a glance">
+              <div><strong>{loading || error ? "--" : catalog.entries.length}</strong><span>Published entries</span></div>
+              <div><strong>1,000</strong><span>Technology terms to translate</span></div>
+              <div><ShieldCheck size={24} strokeWidth={1.5} /><span>Community-led review</span></div>
+              <Link href="/about">Built together. Open to everyone. <ArrowUpRight size={17} /></Link>
+            </section>}
             {tech ? (
               <div className="commons-planning">
                 <Layers size={22} />
                 <div>
-                  <strong>{technologyTerms.length} starter terms / 1,000-term goal</strong>
+                  <strong>{technologyTerms.length} starter terms / {loading || error ? "--" : publishedTerms.size} with published translations</strong>
                   <p>
-                    Planning list, not an approved Somali glossary. Translations are awaiting
-                    contribution and independent review.
+                    Published translations appear alongside their English terms. Remaining terms
+                    await contribution and independent review.
                   </p>
                 </div>
                 <a href="/api/technology" download>
-                  <ArrowDownToLine size={17} /> Draft JSON
+                  <ArrowDownToLine size={17} /> English planning JSON
                 </a>
               </div>
             ) : (
-              <section className="commons-collections" aria-label="Collections">
+              <section id="collections" className="commons-collections" aria-label="Collections">
                 {[
                   {
                     id: "vocabulary",
@@ -227,8 +247,8 @@ export function PublicSite({ page }: { page: string }) {
                 ))}
               </section>
             )}
-            <div className="commons-list-heading">
-              <h2>{tech ? "Untranslated starter terms" : "Published entries"}</h2>
+            <div className="commons-list-heading" id="published-entries">
+              <h2>{tech ? "Technology terminology" : "Published entries"}</h2>
               <span>{tech ? terms.length : items.length} entries</span>
               {!tech && (
                 <a href="/api/export?format=json" download>
@@ -241,7 +261,7 @@ export function PublicSite({ page }: { page: string }) {
                 <Search size={18} />
                 <input
                   aria-label="Search entries"
-                  placeholder={tech ? "Search technology terms" : "Search Somali or English"}
+                  placeholder={tech ? "Search English or Somali terms" : "Search Somali or English"}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
@@ -265,11 +285,11 @@ export function PublicSite({ page }: { page: string }) {
                 ))}
               </select>
             </div>
-            {!tech && loading ? (
+            {loading ? (
               <p className="commons-empty" aria-busy="true">
                 Loading published entries...
               </p>
-            ) : !tech && error ? (
+            ) : error ? (
               <div className="commons-empty" role="status">
                 <p>{error}</p>
                 <button
@@ -293,7 +313,14 @@ export function PublicSite({ page }: { page: string }) {
                     {terms.map((row) => (
                       <div key={row.id} className="commons-term-row">
                         <strong>{row.english}</strong>
-                        <span className="commons-pending">Needs translation</span>
+                        <div className="commons-term-translations">
+                          {(publishedTerms.get(row.id) ?? []).map((entry) => (
+                            <button key={entry.id} onClick={() => setSelected(entry.id)} aria-label={`View ${entry.term} translation for ${row.english}`}>
+                              <strong>{entry.term}</strong><small>Published · {entry.dialect}</small><ArrowUpRight size={15} aria-hidden="true" />
+                            </button>
+                          ))}
+                          {!publishedTerms.has(row.id) && <span className="commons-pending">Needs translation</span>}
+                        </div>
                         <small>{row.category}</small>
                       </div>
                     ))}
@@ -338,8 +365,8 @@ export function PublicSite({ page }: { page: string }) {
                 )}
               </>
             )}
-            {detail && !tech && (
-              <section className="commons-detail" aria-label="Entry details">
+            {detail && (
+              <section ref={detailRef} className="commons-detail" aria-label="Entry details">
                 <button
                   className="commons-close"
                   aria-label="Close entry"
@@ -361,6 +388,19 @@ export function PublicSite({ page }: { page: string }) {
                 </dl>
               </section>
             )}
+            {page === "" && <>
+              <section className="commons-home-project">
+                <div><span className="commons-eyebrow">THE NEXT CHAPTER</span><h2>Somali belongs in technology.</h2><p>From the home screen to the cloud. Our first 1,000 English technology terms are ready for contributors and reviewers to propose, discuss and review Somali translations.</p><Link href="/technology">Explore the terminology project <ArrowRight size={18} /></Link></div>
+                <div className="commons-home-terms" aria-label="Technology translation progress">{["Home", "Dashboard", "Account", "Settings"].map((term, index) => {
+                  const seed = technologyTerms.find((row) => row.english.toLowerCase() === term.toLowerCase());
+                  const translations = seed ? publishedTerms.get(seed.id) : undefined;
+                  return <div key={term}><small>0{index + 1}</small><strong>{term}</strong><span>{loading || error ? "--" : translations?.map((row) => row.term).join(" / ") || "Awaiting translation"}</span></div>;
+                })}</div>
+              </section>
+              <section className="commons-home-build">
+                <Braces size={32} strokeWidth={1.5} /><div><span className="commons-eyebrow">FOR DEVELOPERS</span><h2>Make something in Somali.</h2><p>Published language data, a read-only API and downloadable JSON. A shared foundation for your next idea.</p></div><Link href="/developers">Developer resources <ArrowUpRight size={18} /></Link>
+              </section>
+            </>}
           </>
         )}
         {page === "developers" && (
@@ -372,7 +412,9 @@ export function PublicSite({ page }: { page: string }) {
                 Read published language data, download open formats, and keep attribution with every
                 record.
               </p>
+              <div className="commons-developer-actions"><a href="#api-reference">API reference <ArrowRight size={16} /></a><Link href="/releases">Dataset releases <ArrowUpRight size={16} /></Link></div>
             </div>
+            <div className="commons-developer-strip" aria-label="API overview"><span><Globe size={17} /> Public read-only access</span><span><Braces size={17} /> JSON &amp; JSONL</span><span><ShieldCheck size={17} /> Published records only</span></div>
             <div className="commons-dev-grid">
               <section>
                 <h2>Public data access</h2>
@@ -432,7 +474,7 @@ export function PublicSite({ page }: { page: string }) {
                 </p>
               </section>
             </div>
-            <section className="commons-info-band">
+            <section className="commons-info-band commons-api-reference" id="api-reference">
               <h2>Version 1 API</h2>
               <p>
                 <Link href="/api/v1/entries" prefetch={false}>
@@ -516,7 +558,8 @@ export function PublicSite({ page }: { page: string }) {
                   <p>
                     The planning list uses English terms, domains and a{" "}
                     <code>needs_translation</code> status. <code>somali: null</code> means no
-                    translation has been provided. It is not a reviewed dictionary.
+                    translation is included in this planning export. Published translations are
+                    available separately through the v1 API. It is not a reviewed dictionary.
                   </p>
                 </div>
                 <div>
@@ -566,7 +609,7 @@ export function PublicSite({ page }: { page: string }) {
               ))}
               {!loading && !catalog.releases.length && (
                 <p>
-                  No published releases yet. Scholars must review entries and editors must publish
+                  No published releases yet. Reviewers must review entries and editors must publish
                   them before a release can be created. The planning list is not a release.
                 </p>
               )}
@@ -647,7 +690,7 @@ export function PublicSite({ page }: { page: string }) {
           <>
             <div className="commons-page-heading">
               <span className="commons-eyebrow">THE PROJECT</span>
-              <h1>About qaamuusAi</h1>
+              <h1>About QaamuusAi</h1>
               <p>
                 A community-governed foundation for Somali language knowledge, digital tools and
                 learning.
@@ -664,12 +707,12 @@ export function PublicSite({ page }: { page: string }) {
             <section className="commons-info-band">
               <h2>Contribute and get in touch</h2>
               <p>
-                Propose vocabulary, supply source evidence or apply to become a scholar through the
+                Propose vocabulary, supply source evidence or apply to become a reviewer through the
                 community workspace. Applications are reviewed independently; technical
                 administration does not decide terminology.
               </p>
               <Link href="/login">Sign in to contribute</Link> ·{" "}
-              <Link href="/dashboard/scholars">Scholar applications</Link>
+              <Link href="/dashboard/scholars">Reviewer applications</Link>
               {process.env.NEXT_PUBLIC_CONTACT_EMAIL && (
                 <p>
                   <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}>
@@ -698,7 +741,7 @@ export function PublicSite({ page }: { page: string }) {
                 <p>
                   Contributors propose. Independent reviewers assess. Editors coordinate and
                   publish. Technical administration does not confer linguistic authority. Governance
-                  is provisional until ratified by founding scholars.
+                  is provisional until ratified by founding reviewers.
                 </p>
               </div>
               <div>
@@ -786,7 +829,7 @@ export function PublicSite({ page }: { page: string }) {
       </main>
       <footer className="commons-footer">
         <span>
-          qaamuusAi <span>Somali language commons</span>
+          QaamuusAi <span>Somali language commons</span>
         </span>
         <div>
           <Link href="/about">Our goal</Link>

@@ -12,7 +12,7 @@ import {
   ListChecks,
   MessageSquare,
   Search,
-  GraduationCap,
+  UserCheck,
   NotebookPen,
   Package,
   Users,
@@ -206,7 +206,7 @@ export function SharedWorkspace({ page }: { page: string }) {
     { href: "dashboard/terminology", label: "Terminology", Icon: BookOpen },
     { href: "dashboard/reviews", label: "Review queue", Icon: ListChecks },
     { href: "dashboard/disputes", label: "Disputes", Icon: MessageSquare },
-    { href: "dashboard/scholars", label: "Scholar applications", Icon: GraduationCap },
+    { href: "dashboard/scholars", label: "Reviewer applications", Icon: UserCheck },
     { href: "dashboard/articles", label: "Article proposals", Icon: NotebookPen },
     { href: "articles", label: "Articles", Icon: BookOpen },
     { href: "dashboard/releases", label: "Dataset releases", Icon: Package },
@@ -287,8 +287,9 @@ export function SharedWorkspace({ page }: { page: string }) {
     <LocaleContext.Provider value={language}>
       <div className="shared-shell">
         <header className="shared-header">
-          <Link href="/datasets" className="brand">
-            qaamuusAi
+          <Link href="/" className="brand">
+            <span className="brand-icon"><BookOpen size={23} aria-hidden="true" /></span>
+            <span>Qaamuus<span className="brand-ai">Ai</span></span>
           </Link>
           <span className="status-pill">{tr("Shared workspace")}</span>
           <div className="shared-header-actions">
@@ -324,6 +325,7 @@ export function SharedWorkspace({ page }: { page: string }) {
         </header>
         <div className="shared-layout">
           <nav className="shared-nav" aria-label={tr("Workspace navigation")}>
+            <span className="shared-nav-heading">{tr("Shared workspace")}</span>
             {nav.filter((item) => showWorkspaceLink(item.href, state)).map(({ href, label, Icon }) => (
               <Link
                 href={`/${href}`}
@@ -941,7 +943,7 @@ export function SharedWorkspace({ page }: { page: string }) {
         </div>
         <footer className="shared-footer">
           <Link href="/about">{tr("About")}</Link>
-          <span>qaamuusAi</span>
+          <span>QaamuusAi</span>
         </footer>
       </div>
     </LocaleContext.Provider>

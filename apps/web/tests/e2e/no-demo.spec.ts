@@ -48,6 +48,11 @@ test("removed sandbox URLs return 404 and public pages contain no demo links", a
     }),
   );
   await page.route("**/api/community", (route) => route.fulfill({ json: emptySharedCommunity }));
+  await page.goto("/login");
+  await expect(page.locator("a.brand")).toHaveAttribute("href", "/");
+  await page.locator("a.brand").click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByLabel("Af Soomaali", { exact: true })).toBeVisible();
   await page.route("**/api/terminology/claims", (route) => route.fulfill({ json: [] }));
   for (const path of ["/dashboard", "/dashboard/terminology", "/dashboard/submissions"]) {
     await page.goto(path);

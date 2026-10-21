@@ -172,7 +172,7 @@ test("navigation follows current roles while direct admin URLs remain guarded", 
     await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
     await expect(nav.getByRole("link", { name: "Role administration", exact: true })).toHaveCount(roles.includes("editor") || roles.includes("technical_admin") ? 1 : 0);
     await expect(nav.getByRole("link", { name: "Review queue", exact: true })).toHaveCount(roles.includes("editor") || roles.includes("reviewer") ? 1 : 0);
-    await expect(nav.getByRole("link", { name: "Scholar applications", exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Reviewer applications", exact: true })).toBeVisible();
   }
   state.roles = ["reviewer"];
   await page.goto("/shared/admin/roles");

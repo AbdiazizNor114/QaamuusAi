@@ -71,7 +71,7 @@ export function SharedCommunityPanel({
               }))
             }
           >
-            <h2>{tr("Scholar application")}</h2>
+            <h2>{tr("Reviewer application")}</h2>
             <label>
               {tr("Areas of expertise")}
               <textarea name="expertise" required maxLength={10000} />

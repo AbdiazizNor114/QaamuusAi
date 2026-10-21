@@ -1,7 +1,7 @@
 "use client";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Plus, ClipboardCheck, FilePenLine, BookOpen, MessageSquare, GraduationCap, CircleCheck, Clock3 } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Plus, ClipboardCheck, FilePenLine, BookOpen, MessageSquare, UserCheck, CircleCheck, Clock3 } from "lucide-react";
 import { useLocale } from "@/lib/locale";
 import { reviewQueue, type SharedState } from "@/lib/shared";
 import { articleActionCount, type SharedCommunity } from "@/lib/shared-community";
@@ -23,7 +23,7 @@ export function DashboardOverview({ state, community, onCreate, onSelect }: {
     { path: "/dashboard/reviews", label: "Review queue", count: reviews.length, Icon: ClipboardCheck, tone: "teal" },
     { path: "/dashboard/articles", label: "Article proposals", count: articleActionCount(state, community), Icon: BookOpen, tone: "blue" },
     { path: "/dashboard/disputes", label: "Open disputes", count: disputes, Icon: MessageSquare, tone: "coral" },
-    { path: "/dashboard/scholars", label: "Pending applications", count: counts.scholars, Icon: GraduationCap, tone: "blue" },
+    { path: "/dashboard/scholars", label: "Pending applications", count: counts.scholars, Icon: UserCheck, tone: "blue" },
   ].filter((item) => item.count > 0);
   const activity = [
     ...state.reviewHistory.map((item) => ({ ...item, title: state.revisions.find((row) => row.id === item.revision_id)?.term, path: state.revisions.find((row) => row.id === item.revision_id)?.author_id === state.user?.id ? "/dashboard/submissions" : "/dashboard/reviews", kind: "dataset" })),

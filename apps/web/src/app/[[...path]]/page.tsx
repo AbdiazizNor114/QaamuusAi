@@ -13,6 +13,8 @@ const pages = [
   "articles",
   "contribute",
   "login",
+  "join",
+  "admin/contributors",
   "reset-password",
   "dashboard",
   "dashboard/submissions",

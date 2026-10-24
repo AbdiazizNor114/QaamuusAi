@@ -56,6 +56,7 @@ it("requires same-origin requests and a verified session to set a password", asy
 it("checks length and confirmation and updates only the authenticated account", async () => {
   const updateUser = vi.fn().mockResolvedValue({ error: null });
   client.mockResolvedValue({
+    rpc: vi.fn().mockResolvedValue({ error: null }),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: "verified" } } }),
       updateUser,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./platform.css";
 export const metadata: Metadata = {
   title: "qaamuusAi | Somali language commons",
   description: "A community workspace for Somali vocabulary, translations and grammar.",

@@ -4,6 +4,7 @@ import type { SharedState } from "./shared";
 export function showWorkspaceLink(path: string, state: Pick<SharedState, "user" | "roles">): boolean {
   if (["datasets", "articles", "dashboard/releases"].includes(path)) return true;
   if (!state.user) return false;
+  if (path === "admin/contributors") return state.roles.includes("technical_admin");
   if (path === "admin/roles")
     return state.roles.includes("editor") || state.roles.includes("technical_admin");
   if (path === "dashboard/reviews")

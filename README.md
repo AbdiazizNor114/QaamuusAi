@@ -103,3 +103,23 @@ Software is MIT licensed (see `LICENSE`). Datasets and articles carry independen
 ## Reference documentation
 
 Framework setup follows the [Next.js installation documentation](https://nextjs.org/docs/app/getting-started/installation). The server client follows the [Supabase SSR documentation](https://supabase.com/docs/guides/auth/server-side).
+
+### Contributor invitations
+
+Visitors apply at `/join` with their name, email, field of study and professional role. Professional titles describe applicants’ backgrounds and do not grant reviewer or administrator permissions. Technical administrators review
+requests at `/admin/contributors`; approval sends a Supabase Auth invitation to that
+exact address. The verified recipient sets a password and receives the contributor
+role. Declining a request creates no account. Failed email attempts can be retried.
+
+Before enabling this flow in production:
+- Apply `supabase/migrations/202610240001_contributor_requests.sql` followed by `202610240002_contributor_background.sql`.
+- Set server-only `SUPABASE_SECRET_KEY` (legacy `SUPABASE_SERVICE_ROLE_KEY` is also supported).
+- Configure Supabase SMTP and Site URL to your production origin, and allow `/auth?type=invite` as a redirect URL.
+- Copy `supabase/templates/invite.html` into Supabase Auth’s **Invite user** email template. The token-hash link is required for server-side verification; see [Supabase email templates](https://supabase.com/docs/guides/auth/auth-email-templates).
+- Disable public self-signup in Supabase Auth so new accounts require an administrator invitation.
+- Apply infrastructure request rate limits to `/api/contributor-requests` before public launch. Duplicate emails are ignored without exposing application status.
+
+Existing confirmed accounts cannot receive a new-user invitation; manage their roles
+through the existing role administration page. If a server stops while a request is
+`sending`, check Supabase email delivery before resetting its status to `failed` in
+the database. No approval emails are sent by local development unless configured.

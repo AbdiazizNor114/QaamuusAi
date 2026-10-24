@@ -12,3 +12,6 @@ test-results/
 *.tsbuildinfo
 .local/
 *.log
+
+# Local Supabase CLI cache
+supabase/.temp/

@@ -16,9 +16,10 @@ test("migrations, RLS and editorial transactions", async (t) => {
     // Reproduce Supabase's database roles and auth identity contract locally.
     await db.exec(`
       create role anon;
+      create role service_role;
       create role authenticated;
       create schema auth;
-      create table auth.users(id uuid primary key);
+      create table auth.users(id uuid primary key, email text, email_confirmed_at timestamptz);
       create function auth.uid() returns uuid language sql stable as
         $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       grant usage on schema auth,public to anon,authenticated;
@@ -31,6 +32,8 @@ test("migrations, RLS and editorial transactions", async (t) => {
       "202610130001_community_workflows.sql",
       "202610140001_reviewer_assignment.sql",
       "202610170001_terminology_claims.sql",
+      "202610240001_contributor_requests.sql",
+      "202610240002_contributor_background.sql",
     ]) {
       await db.exec(
         await readFile(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8"),
@@ -437,6 +440,47 @@ test("migrations, RLS and editorial transactions", async (t) => {
       await db.exec("reset role");
       assert.equal((await db.query("select count(*)::int as count from audit_logs where action in ('terminology_claimed','terminology_released')")).rows[0].count,4);
       assert.equal((await db.query("select count(*)::int as count from terminology_seed_catalog")).rows[0].count,1000);
+    });
+    await t.test("contributor requests stay private and only approved verified emails receive access", async () => {
+      await identity(null, "anon");
+      await db.query("select request_contributor_access($1,$2,$3,$4)", ["Synthetic applicant", "Applicant@Example.com", "Computer science", "frontend"]);
+      await db.query("select request_contributor_access($1,$2,$3,$4)", ["Duplicate", "applicant@example.com", "Linguistics", "linguist"]);
+      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4)", ["Invalid", "invalid@example.com", "", "frontend"]));
+      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4)", ["Invalid", "invalid@example.com", "Linguistics", "technical_admin"]));
+      await assert.rejects(db.query("select * from contributor_requests"));
+      await assert.rejects(db.query("select accept_contributor_invitation()"));
+      await identity(author);
+      assert.equal((await db.query("select * from contributor_requests")).rows.length,0);
+      await assert.rejects(db.query("update contributor_requests set status='invited'"));
+      await identity(admin);
+      assert.equal((await db.query("select * from contributor_requests")).rows.length,1);
+      assert.equal((await db.query("select study from contributor_requests")).rows[0].study,"Computer science");
+      assert.equal((await db.query("select professional_role from contributor_requests")).rows[0].professional_role,"frontend");
+      await db.exec("reset role");
+      const applicant = "10000000-0000-4000-8000-000000000099";
+      await db.query("insert into auth.users(id,email) values($1,'applicant@example.com')",[applicant]);
+      await identity(applicant);
+      await db.query("select accept_contributor_invitation()");
+      assert.equal((await db.query("select * from user_roles")).rows.length,0);
+      await db.exec("reset role");
+      await db.query("update contributor_requests set status='invited',reviewed_by=$1",[admin]);
+      await identity(applicant);
+      await db.query("select accept_contributor_invitation()");
+      assert.equal((await db.query("select * from user_roles")).rows.length,0);
+      await db.exec("reset role");
+      await db.query("update auth.users set email_confirmed_at=now() where id=$1",[applicant]);
+      await identity(author);
+      await db.query("select accept_contributor_invitation()");
+      await db.exec("reset role");
+      assert.equal((await db.query("select status from contributor_requests")).rows[0].status,"invited");
+      await identity(applicant);
+      await db.query("select accept_contributor_invitation()");
+      await db.query("select accept_contributor_invitation()");
+      assert.equal((await db.query("select role from user_roles")).rows[0].role,"contributor");
+      assert.equal((await db.query("select display_name from profiles")).rows[0].display_name,"Synthetic applicant");
+      await db.exec("reset role");
+      assert.equal((await db.query("select status from contributor_requests")).rows[0].status,"accepted");
+      assert.equal((await db.query("select count(*)::int as count from audit_logs where action='accept_contributor_invitation'")).rows[0].count,1);
     });
   } finally {
     await db.close();

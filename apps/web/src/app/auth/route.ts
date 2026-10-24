@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     type === "recovery" ||
     new NextRequest(request.url, { headers: request.headers }).cookies.get("qaamuusai-recovery")
       ?.value === "1";
-  const destination = recovery ? "/reset-password" : "/dashboard";
+  const destination = recovery || type === "invite" ? "/reset-password" : "/dashboard";
   function redirect(path: string) {
     const response = NextResponse.redirect(new URL(path, origin));
     response.headers.set("Cache-Control", "private, no-store");
@@ -23,15 +23,29 @@ export async function GET(request: Request) {
     if (
       token_hash &&
       db &&
-      (type === "email" || type === "magiclink" || type === "signup" || type === "recovery")
+      (type === "email" ||
+        type === "magiclink" ||
+        type === "signup" ||
+        type === "recovery" ||
+        type === "invite")
     ) {
       const { error } = await db.auth.verifyOtp({ token_hash, type });
-      if (!error) return redirect(destination);
+      if (!error) {
+        if (type === "invite") {
+          const { error: accessError } = await db.rpc("accept_contributor_invitation");
+          if (accessError) return redirect("/login?error=callback");
+        }
+        return redirect(destination);
+      }
     }
     if (code && db) {
       const { data, error } = await db.auth.exchangeCodeForSession(code);
       if (!error)
-        return redirect(data && "redirectType" in data && data.redirectType === "recovery" ? "/reset-password" : destination);
+        return redirect(
+          data && "redirectType" in data && data.redirectType === "recovery"
+            ? "/reset-password"
+            : destination,
+        );
     }
   } catch {
     return redirect("/login?error=callback");

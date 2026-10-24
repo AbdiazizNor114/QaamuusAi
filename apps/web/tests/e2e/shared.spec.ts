@@ -601,7 +601,12 @@ test("shared screens fit mobile, pass axe and recover from load errors", async (
     await page.setViewportSize({ width, height: 900 });
     for (const route of ["/datasets", "/login", "/dashboard", "/dashboard/profile"]) {
       await page.goto(`/shared${route}`);
-      await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
+      if (route === "/login") {
+        await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
+        await expect(page.getByRole("navigation", { name: "Workspace navigation" })).toHaveCount(0);
+      } else {
+        await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
+      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );

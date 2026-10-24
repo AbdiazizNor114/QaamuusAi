@@ -30,5 +30,14 @@ export async function POST(request: Request) {
       },
       { status: 400 },
     );
+  const { error: accessError } = await db.rpc("accept_contributor_invitation");
+  if (accessError)
+    return NextResponse.json(
+      {
+        error:
+          "Password saved, but contributor access could not be completed. Please try saving again.",
+      },
+      { status: 503 },
+    );
   return NextResponse.json({ ok: true });
 }

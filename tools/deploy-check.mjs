@@ -5,6 +5,8 @@ import { pathToFileURL } from "node:url";
 export function checkEnvironment(env, production = false) {
   const errors = [];
   const warnings = [];
+  if (production && !(env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY))
+    errors.push("Server-only SUPABASE_SECRET_KEY is required for contributor applications and invitations.");
   const origin = (name) => {
     const value = env[name];
     if (!value) {

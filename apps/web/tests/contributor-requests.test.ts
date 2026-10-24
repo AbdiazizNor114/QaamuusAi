@@ -15,10 +15,11 @@ function request(body: unknown, origin = "http://localhost:3000") {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("APP_ORIGIN", "");
+  vi.stubEnv("VERCEL", "");
 });
 it("accepts validated name and email without an account and normalizes email", async () => {
   const rpc = vi.fn().mockResolvedValue({ error: null });
-  client.mockResolvedValue({ rpc });
+  service.mockReturnValue({ rpc });
   expect(
     (
       await apply(
@@ -36,6 +37,7 @@ it("accepts validated name and email without an account and normalizes email", a
     applicant_email: "applicant@example.com",
     applicant_study: "Computer science",
     applicant_role: "frontend",
+    client_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
   });
   expect((await apply(request({ name: "", email: "bad" }))).status).toBe(400);
   expect((await apply(request({}, "https://external.example"))).status).toBe(403);
@@ -126,9 +128,66 @@ it("a concurrent or completed decision sends no duplicate invitation", async () 
   expect(invite).not.toHaveBeenCalled();
 });
 
+it("resends only previously invited applications and rejects concurrent resends", async () => {
+  const { chain, invite } = administrator();
+  expect(
+    (await decide(request({ decision: "resend" }), { params: Promise.resolve({ id }) })).status,
+  ).toBe(200);
+  expect(chain.in).toHaveBeenCalledWith("status", ["invited"]);
+  expect(invite).toHaveBeenCalledTimes(1);
+  chain.maybeSingle.mockResolvedValue({ data: null, error: null });
+  expect(
+    (await decide(request({ decision: "resend" }), { params: Promise.resolve({ id }) })).status,
+  ).toBe(409);
+  expect(invite).toHaveBeenCalledTimes(1);
+});
+
+it("explains existing accounts without exposing provider details", async () => {
+  const { invite } = administrator();
+  invite.mockResolvedValue({ error: { code: "email_exists", message: "private provider detail" } });
+  const response = await decide(request({ decision: "approve" }), {
+    params: Promise.resolve({ id }),
+  });
+  expect(response.status).toBe(502);
+  const body = await response.json();
+  expect(body.error).toContain("already has an account");
+  expect(body.error).not.toContain("private provider detail");
+});
+
+it("returns a retryable rate limit response from the shared database budget", async () => {
+  service.mockReturnValue({ rpc: vi.fn().mockResolvedValue({ error: { code: "P0429" } }) });
+  const response = await apply(
+    request({
+      name: "Applicant",
+      email: "test@example.com",
+      study: "Test",
+      professional_role: "other",
+    }),
+  );
+  expect(response.status).toBe(429);
+  expect(response.headers.get("Retry-After")).toBe("900");
+});
+
+it("trusts client IP headers only on Vercel and fails closed if missing", async () => {
+  const rpc = vi.fn().mockResolvedValue({ error: null });
+  service.mockReturnValue({ rpc });
+  vi.stubEnv("VERCEL", "1");
+  const body = {
+    name: "Applicant",
+    email: "test@example.com",
+    study: "Test",
+    professional_role: "other",
+  };
+  expect((await apply(request(body))).status).toBe(503);
+  const input = request(body);
+  input.headers.set("x-real-ip", "192.0.2.1");
+  expect((await apply(input)).status).toBe(200);
+  expect(rpc.mock.calls[0][1].client_hash).not.toContain("192.0.2.1");
+});
+
 it("requires study and a listed role without assigning application permissions", async () => {
   const rpc = vi.fn().mockResolvedValue({ error: null });
-  client.mockResolvedValue({ rpc });
+  service.mockReturnValue({ rpc });
   const basic = { name: "Applicant", email: "applicant@example.com" };
   expect((await apply(request(basic))).status).toBe(400);
   expect(

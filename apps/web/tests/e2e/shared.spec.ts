@@ -435,6 +435,38 @@ test("signed-in password setup validates confirmation and clears successful inpu
   ).toBeVisible();
   await expect(page.getByLabel("New password")).toHaveValue("");
 });
+test("password setup signs out and opens login only after a successful save", async ({ page }) => {
+  let signedIn = true;
+  let saveSucceeds = false;
+  let logoutCalls = 0;
+  await page.route("**/api/workspace", (route) => route.fulfill({ json: {
+    ...emptySharedState, configured: true,
+    user: signedIn ? { id: author, email: "synthetic@example.com" } : null,
+    profile: signedIn ? { display_name: "Synthetic user" } : null,
+  } }));
+  await page.route("**/api/password", (route) => route.fulfill({
+    status: saveSucceeds ? 200 : 400,
+    json: saveSucceeds ? { ok: true } : { error: "Could not update password." },
+  }));
+  await page.route("**/api/logout", (route) => {
+    logoutCalls++;
+    signedIn = false;
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/reset-password");
+  await page.getByLabel("New password").fill("Synthetic-test-password");
+  await page.getByLabel("Confirm password").fill("Synthetic-test-password");
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page.getByText("Could not update password.")).toBeVisible();
+  await expect(page).toHaveURL(/\/reset-password$/);
+  expect(logoutCalls).toBe(0);
+  saveSucceeds = true;
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+  expect(logoutCalls).toBe(1);
+});
+
 test("forgot-password link sends a recovery request and explains rate limits", async ({ page }) => {
   await page.route("**/api/workspace", (route) =>
     route.fulfill({ json: { ...emptySharedState, configured: true } }),

@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const { id } = await params;
   const input = z
-    .object({ decision: z.enum(["approve", "decline"]) })
+    .object({ decision: z.enum(["approve", "decline", "resend"]) })
     .safeParse(await request.json().catch(() => null));
   if (!z.uuid().safeParse(id).success || !input.success)
     return NextResponse.json({ error: "Invalid decision." }, { status: 400 });
@@ -29,7 +29,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       { error: "Invitation email is not configured. Contact the administrator." },
       { status: 503 },
     );
-  const approved = input.data.decision === "approve";
+  const approved = input.data.decision !== "decline";
   const { data: application, error } = await admin
     .from("contributor_requests")
     .update({
@@ -38,7 +38,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .in("status", ["pending", "failed"])
+    .in("status", input.data.decision === "resend" ? ["invited"] : ["pending", "failed"])
     .select("email,name")
     .maybeSingle();
   if (error || !application)
@@ -56,21 +56,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .update({ status: inviteError ? "failed" : "invited" })
       .eq("id", id)
       .eq("status", "sending");
-    if (inviteError || saveError)
+    if (inviteError || saveError) {
+      console.warn(
+        JSON.stringify({
+          event: "contributor_invitation_failed",
+          code: inviteError?.code || saveError?.code || "unknown",
+        }),
+      );
       return NextResponse.json(
         {
           error:
-            "Invitation could not be completed. Refresh the list before retrying; check email delivery and whether the account already exists.",
+            inviteError?.code === "email_exists"
+              ? "This email already has an account. Ask the member to sign in; use Role administration to manage contributor access."
+              : "Invitation could not be completed. Refresh the list before retrying; check email delivery and whether the account already exists.",
         },
         { status: 502 },
       );
+    }
   }
-  await admin
-    .from("audit_logs")
-    .insert({
-      actor_id: user.id,
-      action: approved ? "invite_contributor" : "decline_contributor",
-      record_id: id,
-    });
+  await admin.from("audit_logs").insert({
+    actor_id: user.id,
+    action: approved ? "invite_contributor" : "decline_contributor",
+    record_id: id,
+  });
   return NextResponse.json({ ok: true });
 }

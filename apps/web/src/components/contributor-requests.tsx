@@ -166,6 +166,10 @@ export function ContributorRequestForm() {
               <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
+          <p className="application-help">
+            By submitting, you acknowledge our <Link href="/privacy">privacy notice</Link>. Read the{" "}
+            <Link href="/contributor-guide">contributor guide</Link> before joining.
+          </p>
           {notice && (
             <p className="application-error" role="alert">
               {notice}
@@ -238,9 +242,12 @@ export function ContributorRequests() {
             </div>
           </dl>
           <p>Status: {application.status}</p>
-          {["pending", "failed"].includes(application.status) && (
+          {["pending", "failed", "invited"].includes(application.status) && (
             <div className="commons-home-actions">
-              {(["approve", "decline"] as const).map((decision) => (
+              {(application.status === "invited"
+                ? (["resend"] as const)
+                : (["approve", "decline"] as const)
+              ).map((decision) => (
                 <button
                   key={decision}
                   disabled={busy}
@@ -257,7 +264,7 @@ export function ContributorRequests() {
                       if (!response.ok) throw new Error(result.error);
                       await load();
                       setNotice(
-                        decision === "approve"
+                        decision !== "decline"
                           ? "Invitation emailed to the applicant."
                           : "Request declined.",
                       );
@@ -270,11 +277,13 @@ export function ContributorRequests() {
                     }
                   }}
                 >
-                  {decision === "approve"
-                    ? application.status === "failed"
-                      ? "Retry invitation"
-                      : "Approve and email invitation"
-                    : "Decline"}
+                  {decision === "resend"
+                    ? "Resend invitation"
+                    : decision === "approve"
+                      ? application.status === "failed"
+                        ? "Retry invitation"
+                        : "Approve and email invitation"
+                      : "Decline"}
                 </button>
               ))}
             </div>

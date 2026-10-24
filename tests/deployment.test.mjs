@@ -11,6 +11,7 @@ const valid = {
   NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
   DEPLOY_EDGE_RATE_LIMIT_CONFIRMED: "true",
+  SUPABASE_SECRET_KEY: "sb_secret_synthetic",
 };
 test("production config validates origins without printing secret values", () => {
   assert.equal(checkEnvironment(valid, true).errors.length, 0);

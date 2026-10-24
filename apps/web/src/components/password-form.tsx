@@ -4,9 +4,11 @@ import { useLocale } from "@/lib/locale";
 export function PasswordForm({
   email,
   onNotice,
+  onSaved,
 }: {
   email?: string;
   onNotice: (message: string) => void;
+  onSaved?: () => Promise<void>;
 }) {
   const { tr } = useLocale();
   const [busy, setBusy] = useState(false);
@@ -34,6 +36,7 @@ export function PasswordForm({
           if (!response.ok) throw new Error(data.error);
           form.reset();
           onNotice("Password saved. You can now sign in with your email and password.");
+          await onSaved?.();
         } catch (error) {
           onNotice(error instanceof Error ? error.message : "Could not update password.");
         } finally {

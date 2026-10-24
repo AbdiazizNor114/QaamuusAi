@@ -22,7 +22,7 @@ test("migrations, RLS and editorial transactions", async (t) => {
       create table auth.users(id uuid primary key, email text, email_confirmed_at timestamptz);
       create function auth.uid() returns uuid language sql stable as
         $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
-      grant usage on schema auth,public to anon,authenticated;
+      grant usage on schema auth,public to anon,authenticated,service_role;
       grant execute on function auth.uid() to anon,authenticated;
       alter default privileges in schema public grant all on tables to anon,authenticated;
     `);
@@ -34,6 +34,7 @@ test("migrations, RLS and editorial transactions", async (t) => {
       "202610170001_terminology_claims.sql",
       "202610240001_contributor_requests.sql",
       "202610240002_contributor_background.sql",
+      "202610240003_contributor_abuse_limits.sql",
     ]) {
       await db.exec(
         await readFile(new URL(`../supabase/migrations/${migration}`, import.meta.url), "utf8"),
@@ -443,10 +444,13 @@ test("migrations, RLS and editorial transactions", async (t) => {
     });
     await t.test("contributor requests stay private and only approved verified emails receive access", async () => {
       await identity(null, "anon");
-      await db.query("select request_contributor_access($1,$2,$3,$4)", ["Synthetic applicant", "Applicant@Example.com", "Computer science", "frontend"]);
-      await db.query("select request_contributor_access($1,$2,$3,$4)", ["Duplicate", "applicant@example.com", "Linguistics", "linguist"]);
-      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4)", ["Invalid", "invalid@example.com", "", "frontend"]));
-      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4)", ["Invalid", "invalid@example.com", "Linguistics", "technical_admin"]));
+      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4,$5)", ["Bypass", "bypass@example.com", "Test", "other", "a".repeat(64)]));
+      await identity(null, "service_role");
+      await db.query("select request_contributor_access($1,$2,$3,$4,$5)", ["Synthetic applicant", "Applicant@Example.com", "Computer science", "frontend", "a".repeat(64)]);
+      await db.query("select request_contributor_access($1,$2,$3,$4,$5)", ["Duplicate", "applicant@example.com", "Linguistics", "linguist", "a".repeat(64)]);
+      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4,$5)", ["Invalid", "invalid@example.com", "", "frontend", "a".repeat(64)]));
+      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4,$5)", ["Invalid", "invalid@example.com", "Linguistics", "technical_admin", "a".repeat(64)]));
+      await identity(null, "anon");
       await assert.rejects(db.query("select * from contributor_requests"));
       await assert.rejects(db.query("select accept_contributor_invitation()"));
       await identity(author);
@@ -481,6 +485,25 @@ test("migrations, RLS and editorial transactions", async (t) => {
       await db.exec("reset role");
       assert.equal((await db.query("select status from contributor_requests")).rows[0].status,"accepted");
       assert.equal((await db.query("select count(*)::int as count from audit_logs where action='accept_contributor_invitation'")).rows[0].count,1);
+    });
+    await t.test("application budgets cannot be bypassed by anonymous calls and persist across requests", async () => {
+      await identity(null, "anon");
+      await assert.rejects(db.query("select * from contributor_request_budgets"));
+      await assert.rejects(db.query("select consume_contributor_budget('global',9999,1)"));
+      await assert.rejects(db.query("select insert_contributor_request('Test','test@example.com','Test','other')"));
+      await identity(null, "service_role");
+      const args = ["Rate test", "rate-test@example.com", "Synthetic", "other", "b".repeat(64)];
+      for (let i = 0; i < 5; i++) await db.query("select request_contributor_access($1,$2,$3,$4,$5)", args);
+      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4,$5)", args), { code: "P0429" });
+      await db.exec("reset role");
+      assert.equal((await db.query("select count(*)::int as n from contributor_requests where email='rate-test@example.com'")).rows[0].n, 1);
+      await db.query("update contributor_request_budgets set started_at=now()-interval '16 minutes' where bucket=$1", ['client:' + 'b'.repeat(64)]);
+      await identity(null, "service_role");
+      await db.query("select request_contributor_access($1,$2,$3,$4,$5)", args);
+      await db.exec("reset role");
+      await db.query("update contributor_request_budgets set requests=100 where bucket='global'");
+      await identity(null, "service_role");
+      await assert.rejects(db.query("select request_contributor_access($1,$2,$3,$4,$5)", [...args.slice(0,4),'c'.repeat(64)]), { code: "P0429" });
     });
   } finally {
     await db.close();

@@ -72,7 +72,7 @@ function Link(props: React.ComponentProps<typeof NextLink>) {
     pathname.startsWith("/shared") &&
     props.href.startsWith("/") &&
     !props.href.startsWith("/api") &&
-    props.href !== "/about"
+    !["/about", "/privacy", "/contributor-guide"].includes(props.href)
       ? `/shared${props.href}`
       : props.href;
   return <NextLink {...props} href={href} />;
@@ -478,7 +478,14 @@ export function SharedWorkspace({ page }: { page: string }) {
               <ContributorRequestForm />
             ) : page === "reset-password" ? (
               state.user ? (
-                <PasswordForm email={state.user.email} onNotice={setNotice} />
+                <PasswordForm
+                  email={state.user.email}
+                  onNotice={setNotice}
+                  onSaved={async () => {
+                    await api("/api/logout", {});
+                    window.location.replace("/login");
+                  }}
+                />
               ) : (
                 <p>{tr("Open the latest password-reset email link in this browser.")}</p>
               )
@@ -1269,6 +1276,8 @@ export function SharedWorkspace({ page }: { page: string }) {
           </main>
         </div>
         <footer className="shared-footer">
+          <Link href="/contributor-guide">Contributor guide</Link>
+          <Link href="/privacy">Privacy</Link>
           <Link href="/about">{tr("About")}</Link>
           <span>QaamuusAi · {tr("Somali language commons")}</span>
           <Link href="/join">{tr("Become a contributor")}</Link>

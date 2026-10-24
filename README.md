@@ -80,7 +80,7 @@ Use an existing authorized Supabase project or a local Supabase instance. Do not
 
 1. With Docker running and the Supabase CLI installed, run `supabase init` and `supabase start` in this repository. Then `supabase db reset` applies the migrations to the local development database. Reset deletes only the selected local development database contents; use an empty instance.
 2. For an existing shared project, apply the numbered SQL migrations in order after review and a backup. Do not reset a shared database.
-3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `apps/web/.env.local`, following `.env.local.example`. No service-role key is used by the application.
+3. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `apps/web/.env.local`, following `.env.local.example`. Contributor applications and invitations additionally require server-only `SUPABASE_SECRET_KEY`; never expose it in public variables.
 4. The default sign-in form uses email/password with Supabase's existing-account authentication; it sends no sign-in email and creates no account implicitly. Existing email-link users can set a password from `/dashboard/profile` while signed in. Password entry is user-controlled; no passwords are stored locally or logged. Forgot password opens an email-recovery form; public account registration is not implemented yet. Keep `http://127.0.0.1:3000/auth` allowlisted for existing email callbacks/recovery configuration. Editorial roles still require a trusted, audited database operation.
 5. The API uses cookies and validates users on every protected request; RLS remains the final authority. Configure SMTP and email rate limits before any real use.
 
@@ -106,6 +106,8 @@ Framework setup follows the [Next.js installation documentation](https://nextjs.
 
 ### Contributor invitations
 
+Pilot launch controls, invitation recovery, monitoring and the backup/restore release gate are documented in [docs/contributor-launch.md](docs/contributor-launch.md). Public onboarding is at `/contributor-guide`; application privacy information is at `/privacy`.
+
 Visitors apply at `/join` with their name, email, field of study and professional role. Professional titles describe applicants’ backgrounds and do not grant reviewer or administrator permissions. Technical administrators review
 requests at `/admin/contributors`; approval sends a Supabase Auth invitation to that
 exact address. The verified recipient sets a password and receives the contributor
@@ -113,6 +115,7 @@ role. Declining a request creates no account. Failed email attempts can be retri
 
 Before enabling this flow in production:
 - Apply `supabase/migrations/202610240001_contributor_requests.sql` followed by `202610240002_contributor_background.sql`.
+- Apply `202610240003_contributor_abuse_limits.sql` with the corresponding server API deployment. Applications use shared database budgets and the insertion RPC is server-only.
 - Set server-only `SUPABASE_SECRET_KEY` (legacy `SUPABASE_SERVICE_ROLE_KEY` is also supported).
 - Configure Supabase SMTP and Site URL to your production origin, and allow `/auth?type=invite` as a redirect URL.
 - Copy `supabase/templates/invite.html` into Supabase Auth’s **Invite user** email template. The token-hash link is required for server-side verification; see [Supabase email templates](https://supabase.com/docs/guides/auth/auth-email-templates).

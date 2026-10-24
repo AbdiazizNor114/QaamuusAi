@@ -990,6 +990,8 @@ export function PublicSite({ page }: { page: string }) {
           <Link href="/developers">Developer access</Link>
           <Link href="/releases">Release history</Link>
           <Link href="/join">Contribute</Link>
+          <Link href="/contributor-guide">Contributor guide</Link>
+          <Link href="/privacy">Privacy</Link>
           <Link href="/login">Sign in</Link>
         </div>
       </footer>

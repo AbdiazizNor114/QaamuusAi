@@ -1,0 +1,1 @@
+run_id,task,model_id,model_revision,dataset_version,manifest_sha256,normalization_version,language_group,speaker_count,clip_count,audio_seconds,wer,cer,intelligibility_mean,naturalness_mean,listener_count,runtime_seconds,real_time_factor,peak_memory_gb,cost_usd,hardware,notes

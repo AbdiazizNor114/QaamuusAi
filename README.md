@@ -126,3 +126,7 @@ Existing confirmed accounts cannot receive a new-user invitation; manage their r
 through the existing role administration page. If a server stops while a request is
 `sending`, check Supabase email delivery before resetting its status to `failed` in
 the database. No approval emails are sent by local development unless configured.
+
+## Preparing the founding contributor team
+
+The [contributor preparation pack](docs/contributors/README.md) covers role-based onboarding, ten ready-to-claim tasks, text/speech data standards, a consent-aware audio collection plan, researched model baselines and a three-month pilot budget. These are proposed working documents: no audio collection, model training, funding commitments or staff appointments are implied.

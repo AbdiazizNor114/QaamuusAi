@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QaamuusAI private speech working record v0.1",
+  "description": "Draft structural contract. Does not verify media, consent, rights, reviewer independence or release authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "speaker_id",
+    "consent_id",
+    "language",
+    "dialect",
+    "dialect_source",
+    "audio_path",
+    "sha256",
+    "duration_seconds",
+    "sample_rate_hz",
+    "channels",
+    "encoding",
+    "transcript_verbatim",
+    "transcript_normalized",
+    "normalization_version",
+    "prompt_id",
+    "source",
+    "license",
+    "rights_status",
+    "release_scope",
+    "permitted_uses",
+    "split",
+    "status",
+    "contributor_id",
+    "reviewer_id",
+    "synthetic",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "speaker_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "consent_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "language": {
+      "const": "som"
+    },
+    "dialect": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "dialect_source": {
+      "enum": [
+        "self_reported",
+        "unspecified"
+      ]
+    },
+    "audio_path": {
+      "type": "string",
+      "pattern": "^audio/[a-zA-Z0-9_-]+\\.wav$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 60
+    },
+    "sample_rate_hz": {
+      "type": "integer",
+      "minimum": 8000,
+      "maximum": 192000
+    },
+    "channels": {
+      "const": 1
+    },
+    "encoding": {
+      "const": "PCM_S16LE"
+    },
+    "transcript_verbatim": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "transcript_normalized": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "normalization_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "license": {
+      "enum": [
+        "Permission pending",
+        "CC0-1.0",
+        "CC-BY-4.0",
+        "Restricted agreement"
+      ]
+    },
+    "rights_status": {
+      "enum": [
+        "pending",
+        "cleared",
+        "withdrawn"
+      ]
+    },
+    "release_scope": {
+      "enum": [
+        "internal",
+        "public"
+      ]
+    },
+    "permitted_uses": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "asr",
+          "evaluation",
+          "tts"
+        ]
+      },
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "split": {
+      "enum": [
+        "unassigned",
+        "train",
+        "dev",
+        "test"
+      ]
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "submitted",
+        "under_review",
+        "approved",
+        "published",
+        "rejected",
+        "withdrawn"
+      ]
+    },
+    "contributor_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reviewer_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "approved",
+              "published"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rights_status": {
+            "const": "cleared"
+          },
+          "license": {
+            "enum": [
+              "CC0-1.0",
+              "CC-BY-4.0",
+              "Restricted agreement"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "published"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "synthetic": {
+            "const": false
+          },
+          "release_scope": {
+            "const": "public"
+          },
+          "license": {
+            "enum": [
+              "CC0-1.0",
+              "CC-BY-4.0"
+            ]
+          },
+          "split": {
+            "enum": [
+              "train",
+              "dev",
+              "test"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "rights_status": {
+            "const": "withdrawn"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "withdrawn"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "withdrawn"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "rights_status": {
+            "const": "withdrawn"
+          }
+        }
+      }
+    }
+  ]
+}

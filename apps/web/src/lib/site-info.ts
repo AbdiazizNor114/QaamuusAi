@@ -27,6 +27,11 @@ export const publicPages = {
     title: "Articles | qaamuusAi",
     description: "Published community writing on Somali language, usage and the commons.",
   },
+  ai: {
+    title: "AI vision & roadmap | qaamuusAi",
+    description:
+      "Somali text and speech datasets, models, training tools and benchmarks: our developer platform vision, roadmap and team needs.",
+  },
   about: {
     title: "About | qaamuusAi",
     description:

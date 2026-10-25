@@ -6,6 +6,7 @@ import { publicPages, siteOrigin } from "@/lib/site-info";
 const pages = [
   "",
   "about",
+  "ai",
   "developers",
   "technology",
   "releases",

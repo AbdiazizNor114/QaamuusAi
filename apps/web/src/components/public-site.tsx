@@ -22,6 +22,7 @@ import { technologyTerms } from "@/lib/technology-terms";
 import { readTerminology } from "@/lib/terminology";
 import { ProposalNotes } from "./proposal-notes";
 import { BrandLogo } from "./brand-logo";
+import { AIOverview } from "./ai-overview";
 
 const entry = z.object({
   id: z.string(),
@@ -64,6 +65,7 @@ const nav = [
   { path: "/developers", label: "Developers" },
   { path: "/releases", label: "Releases" },
   { path: "/articles", label: "Articles" },
+  { path: "/ai", label: "AI vision" },
   { path: "/about", label: "About" },
 ];
 
@@ -192,6 +194,7 @@ export function PublicSite({ page }: { page: string }) {
         </span>
       </div>
       <main id="main-content" tabIndex={-1} className="commons-main">
+        {page === "ai" && <AIOverview />}
         {(page === "" || page === "datasets" || tech) && (
           <>
             <div className={`commons-page-heading${page === "" ? " commons-home-heading" : ""}`}>
@@ -987,6 +990,7 @@ export function PublicSite({ page }: { page: string }) {
         </span>
         <div>
           <Link href="/about">Our goal</Link>
+          <Link href="/ai">AI vision & roadmap</Link>
           <Link href="/developers">Developer access</Link>
           <Link href="/releases">Release history</Link>
           <Link href="/join">Contribute</Link>

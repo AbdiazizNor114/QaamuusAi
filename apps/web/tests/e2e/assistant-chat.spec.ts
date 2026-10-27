@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-test("chat preview is accessible, keeps drafts local and never pretends to generate answers", async ({
+test("project guide sends local questions, shows sources and never transmits them", async ({
   page,
 }) => {
   let transmissions = 0;
@@ -8,18 +8,36 @@ test("chat preview is accessible, keeps drafts local and never pretends to gener
     if (request.method() === "POST") transmissions++;
   });
   await page.goto("/ai");
-  await page.getByRole("button", { name: "AI Chat", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "QaamuusAI Assistant" });
+  await page.getByRole("button", { name: "Ask QaamuusAI", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "QaamuusAI assistant" });
   await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Project guide", exact: true }).click();
+  await dialog.getByRole("button", { name: "How can I contribute?", exact: true }).click();
+  await dialog.getByRole("button", { name: "Send", exact: true }).click();
   await expect(
-    dialog.getByText("Free AI pilot · up to 50 requests per day", { exact: true }),
+    dialog.getByRole("heading", { name: "Join and contribute", exact: true }),
   ).toBeVisible();
-  await expect(dialog.getByText("Somali accuracy is unverified.", { exact: false })).toBeVisible();
-  await dialog.getByRole("button", { name: "Build and debug code", exact: true }).click();
-  await expect(dialog.getByLabel("Your question", { exact: true })).toHaveValue(
-    "Help me plan an accessible Somali language application.",
+  await expect(
+    dialog.getByRole("link", { name: "Read the source", exact: false }).first(),
+  ).toHaveAttribute("href", "/join");
+  await dialog.getByLabel("Your question", { exact: true }).fill("Calculate the orbit of Jupiter");
+  await dialog.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(
+    dialog.getByText("I couldn’t find matching project notes.", { exact: false }),
+  ).toBeVisible();
+  await dialog.getByLabel("Your question", { exact: true }).fill("how can i use the api");
+  await dialog.getByRole("button", { name: "Send", exact: true }).click();
+  await dialog.getByLabel("Your question", { exact: true }).fill("give me example");
+  await dialog.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(
+    dialog.getByRole("heading", {
+      name: "API example: search published translations",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(dialog.getByLabel("API example code", { exact: true })).toContainText(
+    "/api/v1/entries?",
   );
-  await expect(dialog.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
   for (const width of [1440, 320]) {
     await page.setViewportSize({ width, height: 850 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -27,10 +45,12 @@ test("chat preview is accessible, keeps drafts local and never pretends to gener
     );
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   }
-  await dialog.getByRole("button", { name: "Clear draft", exact: true }).click();
-  await expect(dialog.getByLabel("Your question", { exact: true })).toHaveValue("");
+  await dialog.getByRole("button", { name: "Clear chat", exact: true }).click();
+  await expect(
+    dialog.getByRole("heading", { name: "Join and contribute", exact: true }),
+  ).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
-  await expect(page.getByRole("button", { name: "AI Chat", exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Ask QaamuusAI", exact: true })).toBeFocused();
   expect(transmissions).toBe(0);
 });

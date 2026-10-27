@@ -37,6 +37,8 @@ import { ProposalNotes } from "./proposal-notes";
 import { SharedCommunityPanel } from "./shared-community-panel";
 import { ContributorRequestForm, ContributorRequests } from "./contributor-requests";
 import { PasswordForm } from "./password-form";
+import { WorkspaceStart } from "./workspace-start";
+import { ProjectWorkspace } from "./project-workspace";
 import { DashboardOverview } from "./dashboard-overview";
 import { BrandLogo } from "./brand-logo";
 import {
@@ -81,6 +83,9 @@ export function SharedWorkspace({ page }: { page: string }) {
   const accessPage = ["join", "login", "reset-password"].includes(page);
   const descriptions: Record<string, string> = {
     dashboard: "Your contributions, reviews and next steps in one place.",
+    "dashboard/start": "Get oriented, choose your contribution path and find your first task.",
+    "dashboard/tasks":
+      "Coordinate project work with clear owners, evidence and independent review.",
     "dashboard/submissions": "Create proposals, track their progress and respond to review.",
     "dashboard/terminology": "Help build a shared Somali vocabulary for technology.",
     "dashboard/reviews": "Give independent feedback on proposals waiting for review.",
@@ -243,6 +248,8 @@ export function SharedWorkspace({ page }: { page: string }) {
   const nav = [
     { href: "datasets", label: "Datasets", Icon: BookOpen },
     { href: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+    { href: "dashboard/start", label: "Start here", Icon: BookOpen },
+    { href: "dashboard/tasks", label: "Task board", Icon: ListChecks },
     { href: "dashboard/profile", label: "Profile", Icon: UserRound },
     { href: "dashboard/submissions", label: "My submissions", Icon: ListChecks },
     { href: "dashboard/terminology", label: "Terminology", Icon: BookOpen },
@@ -634,6 +641,10 @@ export function SharedWorkspace({ page }: { page: string }) {
               </section>
             ) : page === "admin/contributors" ? (
               <ContributorRequests />
+            ) : page === "dashboard/start" ? (
+              <WorkspaceStart hasProfile={!!state.profile} />
+            ) : page === "dashboard/tasks" && state.profile && state.user ? (
+              <ProjectWorkspace userId={state.user.id} roles={state.roles} />
             ) : page === "dashboard/profile" || (!isPublic && !state.profile) ? (
               <>
                 <form

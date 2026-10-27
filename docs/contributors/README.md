@@ -20,3 +20,7 @@ Start tasks T01–T04 together as people become available; one person can cover 
 Owner appointments are **unassigned**. The founder must name a technical maintainer, language reviewer, data steward and budget owner before real collection. A contributor cannot independently approve their own work.
 
 These documents do not run migrations, create GitHub issues, recruit people, send messages, purchase services, collect recordings or train models. Those activities require actual owners and the release gates described here.
+
+## Workspace screens
+
+See [workspace implementation and migration gates](workspace.md) for Start here, the shared task board and contribution-focused dashboard.

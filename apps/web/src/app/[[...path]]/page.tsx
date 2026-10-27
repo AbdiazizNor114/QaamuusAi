@@ -18,6 +18,8 @@ const pages = [
   "admin/contributors",
   "reset-password",
   "dashboard",
+  "dashboard/start",
+  "dashboard/tasks",
   "dashboard/submissions",
   "dashboard/terminology",
   "dashboard/reviews",

@@ -16,6 +16,7 @@ import {
 import { useLocale } from "@/lib/locale";
 import { reviewQueue, type SharedState } from "@/lib/shared";
 import { articleActionCount, type SharedCommunity } from "@/lib/shared-community";
+import { ProjectWorkspace } from "./project-workspace";
 import { workspaceCounts } from "@/lib/workspace-counts";
 
 export function DashboardOverview({
@@ -132,6 +133,7 @@ export function DashboardOverview({
           {tr("New submission")}
         </button>
       </section>
+      {state.user && <ProjectWorkspace userId={state.user.id} roles={state.roles} summary />}
       <div className="work-totals">
         {[
           {
@@ -159,16 +161,22 @@ export function DashboardOverview({
             Icon: CircleCheck,
             path: "/datasets",
           },
-        ].map(({ label, value, Icon, path }) => (
-          <NextLink href={href(path)} className="work-total" key={label}>
-            <span>
-              <Icon size={16} aria-hidden="true" />
-              {tr(label)}
-            </span>
-            <strong>{value}</strong>
-            <ArrowUpRight size={15} aria-hidden="true" />
-          </NextLink>
-        ))}
+        ]
+          .filter(
+            (item) =>
+              item.path !== "/dashboard/reviews" ||
+              state.roles.some((role) => ["reviewer", "editor"].includes(role)),
+          )
+          .map(({ label, value, Icon, path }) => (
+            <NextLink href={href(path)} className="work-total" key={label}>
+              <span>
+                <Icon size={16} aria-hidden="true" />
+                {tr(label)}
+              </span>
+              <strong>{value}</strong>
+              <ArrowUpRight size={15} aria-hidden="true" />
+            </NextLink>
+          ))}
       </div>
       <div className="work-columns">
         <section className="work-inbox" aria-label={tr("Needs your action")}>

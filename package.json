@@ -16,7 +16,7 @@
     "lint": "pnpm --filter @qaamuusai/web lint",
     "test": "pnpm --filter @qaamuusai/web test",
     "test:e2e": "pnpm --filter @qaamuusai/web test:e2e",
-    "test:db": "node --test tests/database.test.mjs",
+    "test:db": "node --test tests/database.test.mjs tests/project-workspace.test.mjs",
     "format": "prettier --write ."
   },
   "devDependencies": {
